@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8" />
@@ -975,7 +975,14 @@
         if (password === ADMIN_PASSWORD) {
             document.body.classList.add('admin-access');
             errorElement.style.display = 'none';
-            alert('تم الدخول كمسؤول بنجاح! يمكنك الآن الوصول إلى لوحة الإدارة وصفحة العقود.');
+            
+            // إظهار تبويبات الإدارة والعقد في شريط التنقل
+            document.querySelectorAll('.nav-tab.admin-only').forEach(tab => {
+                tab.style.display = 'block';
+            });
+            
+            // الانتقال إلى لوحة الإدارة مباشرة
+            showPage('admin');
         } else {
             errorElement.style.display = 'block';
         }
