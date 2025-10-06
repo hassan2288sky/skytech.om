@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8" />
@@ -406,6 +406,37 @@
         .file-upload:hover {
             border-color: var(--blue2);
         }
+        
+        /* أنماط الحماية */
+        .password-protection {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .password-form {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .admin-only {
+            display: none;
+        }
+        
+        .admin-access .admin-only {
+            display: block;
+        }
+        
+        .admin-access-section {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
@@ -417,9 +448,8 @@
 
 <div class="nav-tabs">
     <div class="nav-tab active" data-page="home">الصفحة الرئيسية</div>
-    <div class="nav-tab" data-page="apply">تقديم طلب توظيف</div>
-    <div class="nav-tab" data-page="contract">إنشاء عقد عمل</div>
-    <div class="nav-tab" data-page="admin">لوحة الإدارة</div>
+    <div class="nav-tab admin-only" data-page="admin">لوحة الإدارة</div>
+    <div class="nav-tab admin-only" data-page="contract">إنشاء عقد عمل</div>
 </div>
 
 <div class="container">
@@ -469,7 +499,18 @@
 
             <div class="actions">
                 <button class="button" id="applyButton">تقديم الآن</button>
-                <button class="button outline" onclick="showPage('admin')">لوحة الإدارة</button>
+            </div>
+
+            <!-- قسم الدخول كمسؤول -->
+            <div class="admin-access-section">
+                <h3>الدخول كمسؤول</h3>
+                <p>للدخول إلى لوحة الإدارة وصفحة العقود، يرجى إدخال كلمة المرور:</p>
+                <div class="password-form">
+                    <label>كلمة المرور:</label>
+                    <input type="password" id="adminAccessPassword" placeholder="أدخل كلمة المرور">
+                    <button class="button outline" onclick="checkAdminAccessPassword()" style="margin-top: 10px;">الدخول كمسؤول</button>
+                    <div class="error-message" id="adminAccessPasswordError">كلمة المرور غير صحيحة</div>
+                </div>
             </div>
         </section>
     </div>
@@ -706,117 +747,150 @@
             </div>
 
             <p class="note">ملاحظة: تعبئة النموذج لا تعني قبولًا نهائيًا، وهو خطوة أولية للتقييم.</p>
+            
+            <div class="actions">
+                <button class="button outline" onclick="showPage('home')">العودة للصفحة الرئيسية</button>
+            </div>
         </section>
     </div>
 
     <!-- صفحة العقد -->
     <div id="contract" class="page">
         <section class="card">
-            <div id="adminNotice">
-                <label>ملاحظة أمنيّة:</label>
-                <p>هذه الصفحة تُفتح عبر لوحة الإدارة. احفظ الرابط في مكان آمن ولا تشاركه.</p>
-                <p class="note">لملء العقد تلقائيًا: استخدم زر "عقد" في لوحة الإدارة، أو ضع المعطيات يدوياً أدناه.</p>
-            </div>
-
-            <div class="contract-header">
-                <div><strong id="contractNumber">رقم العقد: SKY-XXXX-XXX</strong></div>
-                <div id="contractDate">تاريخ العقد: --/--/----</div>
-            </div>
-
-            <h2>عقد عمل جزئي - سماء التقنية</h2>
-
-            <div class="contract-section">
-                <h3>بيانات الموظف</h3>
-                <label>الاسم الكامل</label><input id="c_name" type="text">
-                <label>رقم الهوية / الإقامة</label><input id="c_id" type="text">
-                <label>العنوان</label><input id="c_address" type="text">
-                <div class="row">
-                    <div class="col">
-                        <label>المجال / المهارة</label><input id="c_skill" type="text">
-                    </div>
-                    <div class="col">
-                        <label>النسبة المتفق عليها (%)</label><input id="c_rate" type="number">
-                    </div>
-                </div>
-                <label>تاريخ البدء</label><input id="c_start" type="date">
-            </div>
-
-            <div class="contract-section">
-                <h3>بيانات الشركة</h3>
-                <p><strong>الاسم التجاري:</strong> شركة سماء التقنية ش.م.م (Sky Tech)</p>
-                <p><strong>العنوان:</strong> سلطنة عمان</p>
-                <p><strong>السجل التجاري:</strong> 0000000</p>
-                <p><strong>ممثل الشركة:</strong> الإدارة العامة</p>
-            </div>
-
-            <div class="contract-section">
-                <h3>بنود العقد</h3>
-                <div class="clauses" id="clauses">
-                    <p>1. هذا عقد عمل جزئي بموجب مهمة محددة بين شركة سماء التقنية والطرف الثاني (الموظف).</p>
-                    <p>2. لا يوجد راتب ثابت، ويُحتسب الأجر حسب النسبة المتفق عليها لكل مهمة.</p>
-                    <p>3. يلتزم الموظف بالحضور إلى مقر الشركة لتنفيذ المهام المتفق عليها.</p>
-                    <p>4. على الموظف الحفاظ على سرية المعلومات وعدم إفشاء البيانات.</p>
-                    <p>5. يحق للطرفين إنهاء العقد بعد إشعار مسبق.</p>
+            <div class="password-protection" id="contractPasswordProtection">
+                <h3>الدخول إلى صفحة إنشاء العقود</h3>
+                <p>هذه الصفحة محمية بكلمة مرور للمسؤولين فقط</p>
+                <div class="password-form">
+                    <label>كلمة المرور:</label>
+                    <input type="password" id="contractPassword" placeholder="أدخل كلمة المرور">
+                    <button class="button" onclick="checkContractPassword()" style="margin-top: 10px;">الدخول</button>
+                    <div class="error-message" id="contractPasswordError">كلمة المرور غير صحيحة</div>
                 </div>
             </div>
+            
+            <div id="contractContent" class="admin-only">
+                <div id="adminNotice">
+                    <label>ملاحظة أمنيّة:</label>
+                    <p>هذه الصفحة تُفتح عبر لوحة الإدارة. احفظ الرابط في مكان آمن ولا تشاركه.</p>
+                    <p class="note">لملء العقد تلقائيًا: استخدم زر "عقد" في لوحة الإدارة، أو ضع المعطيات يدوياً أدناه.</p>
+                </div>
 
-            <div class="contract-section">
-                <h3>التوقيعات</h3>
-                <div class="row">
-                    <div class="col">
-                        <label>توقيع الموظف (اكتب الاسم أو توقيع إلكتروني)</label>
-                        <input id="sig_emp" type="text">
+                <div class="contract-header">
+                    <div><strong id="contractNumber">رقم العقد: SKY-XXXX-XXX</strong></div>
+                    <div id="contractDate">تاريخ العقد: --/--/----</div>
+                </div>
+
+                <h2>عقد عمل جزئي - سماء التقنية</h2>
+
+                <div class="contract-section">
+                    <h3>بيانات الموظف</h3>
+                    <label>الاسم الكامل</label><input id="c_name" type="text">
+                    <label>رقم الهوية / الإقامة</label><input id="c_id" type="text">
+                    <label>العنوان</label><input id="c_address" type="text">
+                    <div class="row">
+                        <div class="col">
+                            <label>المجال / المهارة</label><input id="c_skill" type="text">
+                        </div>
+                        <div class="col">
+                            <label>النسبة المتفق عليها (%)</label><input id="c_rate" type="number">
+                        </div>
                     </div>
-                    <div class="col">
-                        <label>توقيع ممثل الشركة</label>
-                        <input id="sig_comp" type="text" value="الإدارة العامة">
+                    <label>تاريخ البدء</label><input id="c_start" type="date">
+                </div>
+
+                <div class="contract-section">
+                    <h3>بيانات الشركة</h3>
+                    <p><strong>الاسم التجاري:</strong> شركة سماء التقنية ش.م.م (Sky Tech)</p>
+                    <p><strong>العنوان:</strong> سلطنة عمان</p>
+                    <p><strong>السجل التجاري:</strong> 0000000</p>
+                    <p><strong>ممثل الشركة:</strong> الإدارة العامة</p>
+                </div>
+
+                <div class="contract-section">
+                    <h3>بنود العقد</h3>
+                    <div class="clauses" id="clauses">
+                        <p>1. هذا عقد عمل جزئي بموجب مهمة محددة بين شركة سماء التقنية والطرف الثاني (الموظف).</p>
+                        <p>2. لا يوجد راتب ثابت، ويُحتسب الأجر حسب النسبة المتفق عليها لكل مهمة.</p>
+                        <p>3. يلتزم الموظف بالحضور إلى مقر الشركة لتنفيذ المهام المتفق عليها.</p>
+                        <p>4. على الموظف الحفاظ على سرية المعلومات وعدم إفشاء البيانات.</p>
+                        <p>5. يحق للطرفين إنهاء العقد بعد إشعار مسبق.</p>
                     </div>
                 </div>
+
+                <div class="contract-section">
+                    <h3>التوقيعات</h3>
+                    <div class="row">
+                        <div class="col">
+                            <label>توقيع الموظف (اكتب الاسم أو توقيع إلكتروني)</label>
+                            <input id="sig_emp" type="text">
+                        </div>
+                        <div class="col">
+                            <label>توقيع ممثل الشركة</label>
+                            <input id="sig_comp" type="text" value="الإدارة العامة">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="button" id="fillFromData">ملء تلقائي من بيانات (إن وجدت)</button>
+                    <button class="button warning" id="printBtn">🖨️ طباعة / حفظ كـ PDF</button>
+                    <button class="button success" id="saveLocal">💾 حفظ بالعقدات المحفوظة</button>
+                    <button class="button outline" onclick="showPage('home')">العودة للرئيسية</button>
+                </div>
+
+                <p class="note">يمكنك تعديل أي حقل قبل الطباعة. سيولد رقم وعنوان تلقائيًا عند فتح الصفحة عبر لوحة الإدارة.</p>
             </div>
 
-            <div class="actions">
-                <button class="button" id="fillFromData">ملء تلقائي من بيانات (إن وجدت)</button>
-                <button class="button warning" id="printBtn">🖨️ طباعة / حفظ كـ PDF</button>
-                <button class="button success" id="saveLocal">💾 حفظ بالعقدات المحفوظة</button>
-            </div>
-
-            <p class="note">يمكنك تعديل أي حقل قبل الطباعة. سيولد رقم وعنوان تلقائيًا عند فتح الصفحة عبر لوحة الإدارة.</p>
-        </section>
-
-        <section class="card saved-contracts" id="savedListCard" style="display:none">
-            <h3>العقود المحفوظة (محليًا)</h3>
-            <div id="savedList"></div>
+            <section class="card saved-contracts admin-only" id="savedListCard" style="display:none">
+                <h3>العقود المحفوظة (محليًا)</h3>
+                <div id="savedList"></div>
+            </section>
         </section>
     </div>
 
     <!-- لوحة الإدارة -->
     <div id="admin" class="page">
         <section class="card">
-            <h2>لوحة إدارة طلبات التوظيف</h2>
+            <div class="password-protection" id="adminPasswordProtection">
+                <h3>الدخول إلى لوحة الإدارة</h3>
+                <p>هذه الصفحة محمية بكلمة مرور للمسؤولين فقط</p>
+                <div class="password-form">
+                    <label>كلمة المرور:</label>
+                    <input type="password" id="adminPassword" placeholder="أدخل كلمة المرور">
+                    <button class="button" onclick="checkAdminPassword()" style="margin-top: 10px;">الدخول</button>
+                    <div class="error-message" id="adminPasswordError">كلمة المرور غير صحيحة</div>
+                </div>
+            </div>
             
-            <div class="stats">
-                <div class="stat-card">
-                    <div>إجمالي الطلبات</div>
-                    <div class="stat-value" id="totalApplications">0</div>
+            <div id="adminContent" class="admin-only">
+                <h2>لوحة إدارة طلبات التوظيف</h2>
+                
+                <div class="stats">
+                    <div class="stat-card">
+                        <div>إجمالي الطلبات</div>
+                        <div class="stat-value" id="totalApplications">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div>المتقدمين الجدد</div>
+                        <div class="stat-value" id="newApplications">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div>العقود المحفوظة</div>
+                        <div class="stat-value" id="totalContracts">0</div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <div>المتقدمين الجدد</div>
-                    <div class="stat-value" id="newApplications">0</div>
-                </div>
-                <div class="stat-card">
-                    <div>العقود المحفوظة</div>
-                    <div class="stat-value" id="totalContracts">0</div>
-                </div>
-            </div>
 
-            <div class="actions">
-                <button class="button outline" onclick="exportData()">📥 تصدير البيانات</button>
-                <button class="button danger" onclick="clearAllData()">🗑️ حذف جميع البيانات</button>
-            </div>
+                <div class="actions">
+                    <button class="button outline" onclick="exportData()">📥 تصدير البيانات</button>
+                    <button class="button danger" onclick="clearAllData()">🗑️ حذف جميع البيانات</button>
+                    <button class="button" onclick="showPage('contract')">إنشاء عقد</button>
+                    <button class="button outline" onclick="showPage('home')">العودة للرئيسية</button>
+                </div>
 
-            <h3>الطلبات المقدمة</h3>
-            <div id="applicationsList">
-                <p>جاري تحميل البيانات...</p>
+                <h3>الطلبات المقدمة</h3>
+                <div id="applicationsList">
+                    <p>جاري تحميل البيانات...</p>
+                </div>
             </div>
         </section>
     </div>
@@ -830,6 +904,7 @@
     // الثوابت والمتغيرات العامة
     const STORAGE_KEY = 'skytech_responses';
     const STORAGE_CONTRACTS = 'skytech_contracts';
+    const ADMIN_PASSWORD = 'sky2335'; // كلمة المرور الجديدة
     
     // وظائف التنقل بين الصفحات
     function showPage(pageId) {
@@ -858,6 +933,51 @@
         // إذا كانت صفحة العقد، قم بتحديث العقود المحفوظة
         if (pageId === 'contract') {
             renderSavedContracts();
+        }
+    }
+    
+    // التحقق من كلمة مرور الإدارة
+    function checkAdminPassword() {
+        const password = document.getElementById('adminPassword').value;
+        const errorElement = document.getElementById('adminPasswordError');
+        
+        if (password === ADMIN_PASSWORD) {
+            document.body.classList.add('admin-access');
+            document.getElementById('adminPasswordProtection').style.display = 'none';
+            document.getElementById('adminContent').style.display = 'block';
+            loadApplications();
+            updateStats();
+        } else {
+            errorElement.style.display = 'block';
+        }
+    }
+    
+    // التحقق من كلمة مرور العقد
+    function checkContractPassword() {
+        const password = document.getElementById('contractPassword').value;
+        const errorElement = document.getElementById('contractPasswordError');
+        
+        if (password === ADMIN_PASSWORD) {
+            document.body.classList.add('admin-access');
+            document.getElementById('contractPasswordProtection').style.display = 'none';
+            document.getElementById('contractContent').style.display = 'block';
+            renderSavedContracts();
+        } else {
+            errorElement.style.display = 'block';
+        }
+    }
+    
+    // التحقق من كلمة مرور الوصول كمسؤول من الصفحة الرئيسية
+    function checkAdminAccessPassword() {
+        const password = document.getElementById('adminAccessPassword').value;
+        const errorElement = document.getElementById('adminAccessPasswordError');
+        
+        if (password === ADMIN_PASSWORD) {
+            document.body.classList.add('admin-access');
+            errorElement.style.display = 'none';
+            alert('تم الدخول كمسؤول بنجاح! يمكنك الآن الوصول إلى لوحة الإدارة وصفحة العقود.');
+        } else {
+            errorElement.style.display = 'block';
         }
     }
     
@@ -1260,6 +1380,11 @@
     
     // التهيئة الأولية عند تحميل الصفحة
     document.addEventListener('DOMContentLoaded', function() {
+        // إخفاء محتوى الإدارة والعقد عن العامة
+        document.querySelectorAll('.admin-only').forEach(el => {
+            el.style.display = 'none';
+        });
+        
         updateStats();
         renderSavedContracts();
     });
