@@ -1,10 +1,10 @@
-
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>نظام التوظيف - سماء التقنية</title>
     <style>
+        /* الأنماط الأصلية تبقى كما هي */
         :root {
             --blue1: #003366;
             --blue2: #007ba7;
@@ -437,6 +437,107 @@
             border-radius: 8px;
             margin: 20px 0;
         }
+
+        /* أنماط جديدة لتسجيل الخروج - إظهار دائم في صفحات الإدارة والعقد */
+        .logout-section {
+            text-align: left;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* أنماط جديدة لإظهار/إخفاء كلمة المرور */
+        .password-container {
+            position: relative;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .toggle-password:hover {
+            color: var(--blue2);
+        }
+
+        /* أنماط جديدة للترقيم التلقائي */
+        .serial-number {
+            width: 50px;
+            text-align: center;
+        }
+
+        /* أنماط جديدة لعرض تفاصيل الطلب */
+        .application-detail {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .application-detail h4 {
+            color: var(--blue1);
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        
+        .detail-row {
+            display: flex;
+            margin-bottom: 8px;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            width: 200px;
+            flex-shrink: 0;
+        }
+        
+        .detail-value {
+            flex: 1;
+        }
+
+        /* أنماط جديدة لخانات الاختيار */
+        .select-all-container {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .export-selected {
+            margin-left: 10px;
+        }
+
+        /* أنماط جديدة لعرض الملفات */
+        .file-info {
+            background: #e8f4ff;
+            border: 1px solid #b6d7ff;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        
+        .file-name {
+            font-weight: bold;
+            color: var(--blue1);
+        }
+        
+        .file-size {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .no-file {
+            color: #999;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -466,7 +567,7 @@
         <section class="card">
             <h2>من نبحث عنهم</h2>
             <p>
-                أشخاص موهوبون في تركيب الدوائر الإلكترونية، برمجة المتحكمات (Arduino/ESP32/Raspberry Pi)، التصميم ثلاثيّ الأبعاد،
+                أشخاص موهوبون في تركيب الدوائر الإلكترونية، برمجة المتحكمات (Arduino/ESP/Raspberry Pi)، التصميم ثلاثيّ الأبعاد،
                 والتعامل العملي مع طابعات 3D. كما نرحّب بذوي الخبرة التدريبية أو مهارات هندسية مشابهة.
             </p>
         </section>
@@ -504,10 +605,12 @@
             <!-- قسم الدخول كمسؤول -->
             <div class="admin-access-section">
                 <h3>الدخول كمسؤول</h3>
-                <p>للدخول إلى لوحة الإدارة وصفحة العقود، يرجى إدخال كلمة المرور:</p>
                 <div class="password-form">
                     <label>كلمة المرور:</label>
-                    <input type="password" id="adminAccessPassword" placeholder="أدخل كلمة المرور">
+                    <div class="password-container">
+                        <input type="password" id="adminAccessPassword" placeholder="أدخل كلمة المرور">
+                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('adminAccessPassword', this)">👁️</button>
+                    </div>
                     <button class="button outline" onclick="checkAdminAccessPassword()" style="margin-top: 10px;">الدخول كمسؤول</button>
                     <div class="error-message" id="adminAccessPasswordError">كلمة المرور غير صحيحة</div>
                 </div>
@@ -590,9 +693,9 @@
                     <label>التعرف على القطع الإلكترونية المختلفة</label>
                     <select name="skill_electronics">
                         <option value="">اختر</option>
-                        <option>ضعيف</option>
-                        <option>متوسط</option>
-                        <option>ممتاز</option>
+                        <option>مبتدئ</option>
+                        <option>متقدم</option>
+                        <option>ماهر</option>
                     </select>
                     
                     <label>هل تتعامل مع برامج رسم الدوائر الإلكترونية ومحاكاتها؟</label>
@@ -614,19 +717,19 @@
                         <label>Arduino</label>
                         <select name="skill_arduino">
                             <option value="">اختر</option>
-                            <option>ضعيف</option>
-                            <option>متوسط</option>
-                            <option>ممتاز</option>
+                            <option>مبتدئ</option>
+                            <option>متقدم</option>
+                            <option>ماهر</option>
                         </select>
                     </div>
                     
                     <div class="skill-item">
-                        <label>ESP32</label>
-                        <select name="skill_esp32">
+                        <label>ESP</label>
+                        <select name="skill_ESP">
                             <option value="">اختر</option>
-                            <option>ضعيف</option>
-                            <option>متوسط</option>
-                            <option>ممتاز</option>
+                            <option>مبتدئ</option>
+                            <option>متقدم</option>
+                            <option>ماهر</option>
                         </select>
                     </div>
                     
@@ -634,9 +737,9 @@
                         <label>Raspberry Pi</label>
                         <select name="skill_rpi">
                             <option value="">اختر</option>
-                            <option>ضعيف</option>
-                            <option>متوسط</option>
-                            <option>ممتاز</option>
+                            <option>مبتدئ</option>
+                            <option>متقدم</option>
+                            <option>ماهر</option>
                         </select>
                     </div>
                     
@@ -657,9 +760,9 @@
                                 <label>مستوى الخبرة</label>
                                 <select name="other_controllers_level">
                                     <option value="">اختر</option>
-                                    <option>ضعيف</option>
-                                    <option>متوسط</option>
-                                    <option>ممتاز</option>
+                                    <option>مبتدئ</option>
+                                    <option>متقدم</option>
+                                    <option>ماهر</option>
                                 </select>
                             </div>
                         </div>
@@ -673,18 +776,18 @@
                             <label>التصميم ثلاثي الأبعاد</label>
                             <select name="skill_3d_design">
                                 <option value="">اختر</option>
-                                <option>ضعيف</option>
-                                <option>متوسط</option>
-                                <option>ممتاز</option>
+                                <option>مبتدئ</option>
+                                <option>متقدم</option>
+                                <option>ماهر</option>
                             </select>
                         </div>
                         <div class="col">
                             <label>التشغيل على طابعات 3D</label>
                             <select name="skill_3d_printing">
                                 <option value="">اختر</option>
-                                <option>ضعيف</option>
-                                <option>متوسط</option>
-                                <option>ممتاز</option>
+                                <option>مبتدئ</option>
+                                <option>متقدم</option>
+                                <option>ماهر</option>
                             </select>
                         </div>
                     </div>
@@ -731,8 +834,9 @@
                 <h3>ملف السيرة الذاتية</h3>
                 <label>إرفاق ملف السيرة الذاتية (PDF) - اختياري</label>
                 <div class="file-upload">
-                    <input type="file" name="cv_file" accept=".pdf">
+                    <input type="file" name="cv_file" id="cv_file" accept=".pdf">
                     <p class="note">يرجى رفع ملف PDF فقط (حجم أقصى 5MB)</p>
+                    <button type="button" class="button outline" onclick="confirmPDFUpload()" style="margin-top: 10px;">تأكيد رفع ملف PDF</button>
                 </div>
 
                 <h3>تأكيد</h3>
@@ -757,12 +861,19 @@
     <!-- صفحة العقد -->
     <div id="contract" class="page">
         <section class="card">
+            <div class="logout-section">
+                <button class="button outline" onclick="logout()">تسجيل الخروج</button>
+            </div>
+            
             <div class="password-protection" id="contractPasswordProtection">
                 <h3>الدخول إلى صفحة إنشاء العقود</h3>
                 <p>هذه الصفحة محمية بكلمة مرور للمسؤولين فقط</p>
                 <div class="password-form">
                     <label>كلمة المرور:</label>
-                    <input type="password" id="contractPassword" placeholder="أدخل كلمة المرور">
+                    <div class="password-container">
+                        <input type="password" id="contractPassword" placeholder="أدخل كلمة المرور">
+                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('contractPassword', this)">👁️</button>
+                    </div>
                     <button class="button" onclick="checkContractPassword()" style="margin-top: 10px;">الدخول</button>
                     <div class="error-message" id="contractPasswordError">كلمة المرور غير صحيحة</div>
                 </div>
@@ -851,12 +962,19 @@
     <!-- لوحة الإدارة -->
     <div id="admin" class="page">
         <section class="card">
+            <div class="logout-section">
+                <button class="button outline" onclick="logout()">تسجيل الخروج</button>
+            </div>
+            
             <div class="password-protection" id="adminPasswordProtection">
                 <h3>الدخول إلى لوحة الإدارة</h3>
                 <p>هذه الصفحة محمية بكلمة مرور للمسؤولين فقط</p>
                 <div class="password-form">
                     <label>كلمة المرور:</label>
-                    <input type="password" id="adminPassword" placeholder="أدخل كلمة المرور">
+                    <div class="password-container">
+                        <input type="password" id="adminPassword" placeholder="أدخل كلمة المرور">
+                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('adminPassword', this)">👁️</button>
+                    </div>
                     <button class="button" onclick="checkAdminPassword()" style="margin-top: 10px;">الدخول</button>
                     <div class="error-message" id="adminPasswordError">كلمة المرور غير صحيحة</div>
                 </div>
@@ -878,19 +996,45 @@
                         <div>العقود المحفوظة</div>
                         <div class="stat-value" id="totalContracts">0</div>
                     </div>
+                    <div class="stat-card">
+                        <div>عدد الزوار</div>
+                        <div class="stat-value" id="totalVisitors">0</div>
+                    </div>
                 </div>
 
                 <div class="actions">
-                    <button class="button outline" onclick="exportData()">📥 تصدير البيانات</button>
+                    <button class="button outline" onclick="exportAllData()">📥 تصدير جميع البيانات (Excel)</button>
+                    <button class="button success export-selected" onclick="exportSelectedData()">📥 تصدير المحدد (Excel)</button>
                     <button class="button danger" onclick="clearAllData()">🗑️ حذف جميع البيانات</button>
                     <button class="button" onclick="showPage('contract')">إنشاء عقد</button>
                     <button class="button outline" onclick="showPage('home')">العودة للرئيسية</button>
+                </div>
+
+                <div class="select-all-container">
+                    <label>
+                        <input type="checkbox" id="selectAllApplications" onchange="toggleSelectAll(this.checked)">
+                        تحديد/إلغاء تحديد جميع الطلبات
+                    </label>
                 </div>
 
                 <h3>الطلبات المقدمة</h3>
                 <div id="applicationsList">
                     <p>جاري تحميل البيانات...</p>
                 </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- صفحة عرض تفاصيل الطلب -->
+    <div id="applicationDetail" class="page">
+        <section class="card">
+            <div class="logout-section admin-only">
+                <button class="button outline" onclick="showPage('admin')">العودة إلى لوحة الإدارة</button>
+            </div>
+            
+            <h2>تفاصيل الطلب</h2>
+            <div id="applicationDetailContent">
+                <p>جاري تحميل البيانات...</p>
             </div>
         </section>
     </div>
@@ -904,19 +1048,67 @@
     // الثوابت والمتغيرات العامة
     const STORAGE_KEY = 'skytech_responses';
     const STORAGE_CONTRACTS = 'skytech_contracts';
-    const ADMIN_PASSWORD = 'sky2335'; // كلمة المرور الجديدة
+    const STORAGE_FILES = 'skytech_uploaded_files';
+    const VISITOR_COUNT_KEY = 'skytech_visitor_count';
+    const ADMIN_PASSWORD = 'sky222025';
+    const LOGIN_STATUS_KEY = 'skytech_admin_logged_in';
+    
+    // إضافة دالة للتحقق من رفع ملف PDF
+    function confirmPDFUpload() {
+        const fileInput = document.getElementById('cv_file');
+        if (fileInput && fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            if (file.type === 'application/pdf') {
+                if (file.size <= 5 * 1024 * 1024) { // 5MB
+                    alert('✓ تم تأكيد رفع ملف PDF بنجاح: ' + file.name);
+                    return true;
+                } else {
+                    alert('❌ حجم الملف كبير جداً. الحد الأقصى 5MB');
+                    return false;
+                }
+            } else {
+                alert('❌ يرجى اختيار ملف PDF فقط');
+                return false;
+            }
+        } else {
+            alert('⚠️ لم يتم اختيار أي ملف لرفعه');
+            return false;
+        }
+    }
+    
+    // وظيفة لتحويل الملف إلى Base64
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+    
+    // وظائف إدارة الملفات
+    function loadFiles() {
+        try {
+            const raw = localStorage.getItem(STORAGE_FILES);
+            if (!raw) return {};
+            return JSON.parse(raw);
+        } catch (e) {
+            return {};
+        }
+    }
+    
+    function saveFiles(filesObj) {
+        localStorage.setItem(STORAGE_FILES, JSON.stringify(filesObj));
+    }
     
     // وظائف التنقل بين الصفحات
     function showPage(pageId) {
-        // إخفاء جميع الصفحات
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
         });
         
-        // إظهار الصفحة المطلوبة
         document.getElementById(pageId).classList.add('active');
         
-        // تحديث التبويبات النشطة
         document.querySelectorAll('.nav-tab').forEach(tab => {
             tab.classList.remove('active');
             if (tab.getAttribute('data-page') === pageId) {
@@ -924,16 +1116,62 @@
             }
         });
         
-        // إذا كانت صفحة الإدارة، قم بتحديث القائمة
         if (pageId === 'admin') {
             loadApplications();
             updateStats();
         }
+    }
+    
+    // التحقق من حالة تسجيل الدخول
+    function checkLoginStatus() {
+        return localStorage.getItem(LOGIN_STATUS_KEY) === 'true';
+    }
+    
+    // حفظ حالة تسجيل الدخول
+    function setLoginStatus(loggedIn) {
+        localStorage.setItem(LOGIN_STATUS_KEY, loggedIn.toString());
+    }
+    
+    // تسجيل الدخول العام
+    function login() {
+        document.body.classList.add('admin-access');
+        setLoginStatus(true);
         
-        // إذا كانت صفحة العقد، قم بتحديث العقود المحفوظة
-        if (pageId === 'contract') {
-            renderSavedContracts();
-        }
+        document.querySelectorAll('.nav-tab.admin-only').forEach(tab => {
+            tab.style.display = 'block';
+        });
+        
+        document.getElementById('adminPasswordProtection').style.display = 'none';
+        document.getElementById('contractPasswordProtection').style.display = 'none';
+        
+        document.getElementById('adminContent').style.display = 'block';
+        document.getElementById('contractContent').style.display = 'block';
+    }
+    
+    // تسجيل الخروج
+    function logout() {
+        document.body.classList.remove('admin-access');
+        setLoginStatus(false);
+        
+        document.querySelectorAll('.nav-tab.admin-only').forEach(tab => {
+            tab.style.display = 'none';
+        });
+        
+        document.getElementById('adminPasswordProtection').style.display = 'block';
+        document.getElementById('contractPasswordProtection').style.display = 'block';
+        
+        document.getElementById('adminContent').style.display = 'none';
+        document.getElementById('contractContent').style.display = 'none';
+        
+        showPage('home');
+        
+        document.getElementById('adminPassword').value = '';
+        document.getElementById('contractPassword').value = '';
+        document.getElementById('adminAccessPassword').value = '';
+        
+        document.getElementById('adminPasswordError').style.display = 'none';
+        document.getElementById('contractPasswordError').style.display = 'none';
+        document.getElementById('adminAccessPasswordError').style.display = 'none';
     }
     
     // التحقق من كلمة مرور الإدارة
@@ -942,9 +1180,7 @@
         const errorElement = document.getElementById('adminPasswordError');
         
         if (password === ADMIN_PASSWORD) {
-            document.body.classList.add('admin-access');
-            document.getElementById('adminPasswordProtection').style.display = 'none';
-            document.getElementById('adminContent').style.display = 'block';
+            login();
             loadApplications();
             updateStats();
         } else {
@@ -958,9 +1194,7 @@
         const errorElement = document.getElementById('contractPasswordError');
         
         if (password === ADMIN_PASSWORD) {
-            document.body.classList.add('admin-access');
-            document.getElementById('contractPasswordProtection').style.display = 'none';
-            document.getElementById('contractContent').style.display = 'block';
+            login();
             renderSavedContracts();
         } else {
             errorElement.style.display = 'block';
@@ -973,19 +1207,42 @@
         const errorElement = document.getElementById('adminAccessPasswordError');
         
         if (password === ADMIN_PASSWORD) {
-            document.body.classList.add('admin-access');
-            errorElement.style.display = 'none';
-            
-            // إظهار تبويبات الإدارة والعقد في شريط التنقل
-            document.querySelectorAll('.nav-tab.admin-only').forEach(tab => {
-                tab.style.display = 'block';
-            });
-            
-            // الانتقال إلى لوحة الإدارة مباشرة
+            login();
             showPage('admin');
         } else {
             errorElement.style.display = 'block';
         }
+    }
+    
+    // إظهار/إخفاء كلمة المرور
+    function togglePasswordVisibility(passwordFieldId, button) {
+        const passwordField = document.getElementById(passwordFieldId);
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+        } else {
+            passwordField.type = 'password';
+        }
+    }
+    
+    // زيادة عدد الزوار
+    function incrementVisitorCount() {
+        let count = localStorage.getItem(VISITOR_COUNT_KEY);
+        if (!count) {
+            count = 0;
+        }
+        count = parseInt(count) + 1;
+        localStorage.setItem(VISITOR_COUNT_KEY, count.toString());
+        return count;
+    }
+    
+    // الحصول على عدد الزوار
+    function getVisitorCount() {
+        let count = localStorage.getItem(VISITOR_COUNT_KEY);
+        if (!count) {
+            count = 0;
+            localStorage.setItem(VISITOR_COUNT_KEY, count.toString());
+        }
+        return parseInt(count);
     }
     
     // التحقق من الموافقة على الشروط قبل الانتقال لصفحة التقديم
@@ -1085,7 +1342,7 @@
     }
     
     // معالجة نموذج التقديم
-    document.getElementById('applyForm').addEventListener('submit', function(e){
+    document.getElementById('applyForm').addEventListener('submit', async function(e){
         e.preventDefault();
         const form = e.target;
         const fd = new FormData(form);
@@ -1094,7 +1351,39 @@
         
         // إضافة بيانات ووقت الإرسال
         obj._submittedAt = new Date().toISOString();
-        obj._id = Date.now().toString(); // معرف فريد
+        obj._id = Date.now().toString();
+        
+        // معالجة ملف PDF إذا تم رفعه
+        const fileInput = document.getElementById('cv_file');
+        if (fileInput && fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            if (file.type === 'application/pdf' && file.size <= 5 * 1024 * 1024) {
+                try {
+                    const fileData = await fileToBase64(file);
+                    const fileInfo = {
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        data: fileData,
+                        uploadedAt: new Date().toISOString()
+                    };
+                    
+                    // حفظ الملف في التخزين المنفصل
+                    const files = loadFiles();
+                    files[obj._id] = fileInfo;
+                    saveFiles(files);
+                    
+                    obj._hasFile = true;
+                    obj._fileName = file.name;
+                    obj._fileSize = file.size;
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    obj._hasFile = false;
+                }
+            }
+        } else {
+            obj._hasFile = false;
+        }
         
         // تحميل الطلبات الحالية وإضافة الجديد
         const arr = loadResponses();
@@ -1132,10 +1421,12 @@
             <table class="applications-table">
                 <thead>
                     <tr>
+                        <th class="serial-number">#</th>
+                        <th><input type="checkbox" id="selectAllHeader" onchange="toggleSelectAll(this.checked)"></th>
                         <th>الاسم</th>
                         <th>الهاتف</th>
                         <th>البريد</th>
-                        <th>التخصص</th>
+                        <th>ملف PDF</th>
                         <th>تاريخ التقديم</th>
                         <th>الإجراءات</th>
                     </tr>
@@ -1143,20 +1434,27 @@
                 <tbody>
         `;
         
-        applications.forEach(app => {
+        applications.forEach((app, index) => {
             const date = new Date(app._submittedAt).toLocaleDateString('ar-EG');
+            const fileInfo = app._hasFile ? 
+                `<span class="file-name">${app._fileName}</span><br><span class="file-size">(${(app._fileSize / 1024).toFixed(2)} KB)</span>` : 
+                '<span class="no-file">لا يوجد ملف</span>';
+            
             html += `
                 <tr>
+                    <td class="serial-number">${index + 1}</td>
+                    <td><input type="checkbox" class="application-checkbox" value="${app._id}"></td>
                     <td>${app.fullName || 'غير مذكور'}</td>
                     <td>${app.phone || 'غير مذكور'}</td>
                     <td>${app.email || 'غير مذكور'}</td>
-                    <td>${app.specialty || 'غير مذكور'}</td>
+                    <td>${fileInfo}</td>
                     <td>${date}</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="button" onclick="viewApplication('${app._id}')">عرض</button>
+                            <button class="button" onclick="viewApplicationDetail('${app._id}')">عرض</button>
                             <button class="button outline" onclick="generateContract('${app._id}')">عقد</button>
                             <button class="button danger" onclick="deleteApplication('${app._id}')">حذف</button>
+                            ${app._hasFile ? `<button class="button success" onclick="downloadFile('${app._id}')">📥 تحميل PDF</button>` : ''}
                         </div>
                     </td>
                 </tr>
@@ -1167,7 +1465,33 @@
         container.innerHTML = html;
     }
     
-    function viewApplication(id) {
+    // تحميل ملف PDF
+    function downloadFile(applicationId) {
+        const files = loadFiles();
+        const fileInfo = files[applicationId];
+        
+        if (fileInfo && fileInfo.data) {
+            const link = document.createElement('a');
+            link.href = fileInfo.data;
+            link.download = fileInfo.name || 'السيرة_الذاتية.pdf';
+            link.click();
+        } else {
+            alert('❌ الملف غير موجود أو تم حذفه');
+        }
+    }
+    
+    // تحديد/إلغاء تحديد جميع الطلبات
+    function toggleSelectAll(checked) {
+        const checkboxes = document.querySelectorAll('.application-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = checked;
+        });
+        document.getElementById('selectAllHeader').checked = checked;
+        document.getElementById('selectAllApplications').checked = checked;
+    }
+    
+    // عرض تفاصيل الطلب في صفحة جديدة
+    function viewApplicationDetail(id) {
         const applications = loadResponses();
         const app = applications.find(a => a._id === id);
         
@@ -1176,36 +1500,197 @@
             return;
         }
         
-        let details = `الاسم: ${app.fullName}\n`;
-        details += `الجنس: ${app.gender}\n`;
-        details += `الهاتف: ${app.phone}\n`;
-        details += `البريد: ${app.email}\n`;
-        details += `العنوان: ${app.address}\n`;
-        details += `المؤهل: ${app.education}\n`;
-        details += `التخصص: ${app.specialty}\n`;
-        details += `وسيلة نقل: ${app.hasTransport}\n`;
-        details += `متفرغ: ${app.isAvailable}\n`;
-        details += `سبب عدم التفرغ: ${app.availabilityReason || 'لا ينطبق'}\n`;
-        details += `التعرف على القطع الإلكترونية: ${app.skill_electronics}\n`;
-        details += `برامج رسم الدوائر: ${app.circuit_design_software}\n`;
-        details += `تفاصيل برامج رسم الدوائر: ${app.circuit_software_details || 'لا ينطبق'}\n`;
-        details += `برمجة Arduino: ${app.skill_arduino}\n`;
-        details += `برمجة ESP32: ${app.skill_esp32}\n`;
-        details += `برمجة Raspberry Pi: ${app.skill_rpi}\n`;
-        details += `متحكمات أخرى: ${app.other_controllers}\n`;
-        details += `نوع المتحكمات الأخرى: ${app.other_controllers_type || 'لا ينطبق'}\n`;
-        details += `مستوى المتحكمات الأخرى: ${app.other_controllers_level || 'لا ينطبق'}\n`;
-        details += `تصميم 3D: ${app.skill_3d_design}\n`;
-        details += `طباعة 3D: ${app.skill_3d_printing}\n`;
-        details += `برامج التصميم: ${app.design_software || 'لا ينطبق'}\n`;
-        details += `الطابعات المستخدمة: ${app.printers_used || 'لا ينطبق'}\n`;
-        details += `أدوات ورشة الإلكترونيات: ${app.workshop_tools}\n`;
-        details += `تفاصيل أدوات الورشة: ${app.workshop_tools_details || 'لا ينطبق'}\n`;
-        details += `الكهرباء ذات الفولتية العالية: ${app.high_voltage}\n`;
-        details += `أدوات ومعدات الورش: ${app.workshop_equipment}\n`;
-        details += `الخبرات: ${app.experience}\n`;
+        let details = `
+            <div class="application-detail">
+                <h4>المعلومات الأساسية</h4>
+                <div class="detail-row">
+                    <div class="detail-label">الاسم الكامل:</div>
+                    <div class="detail-value">${app.fullName || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">الجنس:</div>
+                    <div class="detail-value">${app.gender || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">تاريخ الميلاد:</div>
+                    <div class="detail-value">${app.dob || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">رقم البطاقة/الهوية:</div>
+                    <div class="detail-value">${app.idNumber || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">رقم الهاتف:</div>
+                    <div class="detail-value">${app.phone || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">البريد الإلكتروني:</div>
+                    <div class="detail-value">${app.email || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">عنوان السكن:</div>
+                    <div class="detail-value">${app.address || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">وسيلة نقل:</div>
+                    <div class="detail-value">${app.hasTransport || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">التفرغ:</div>
+                    <div class="detail-value">${app.isAvailable || 'غير مذكور'}</div>
+                </div>
+                ${app.availabilityReason ? `
+                <div class="detail-row">
+                    <div class="detail-label">سبب عدم التفرغ:</div>
+                    <div class="detail-value">${app.availabilityReason}</div>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="application-detail">
+                <h4>المؤهل والخبرات</h4>
+                <div class="detail-row">
+                    <div class="detail-label">أعلى مؤهل:</div>
+                    <div class="detail-value">${app.education || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">التخصص:</div>
+                    <div class="detail-value">${app.specialty || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">الخبرات السابقة:</div>
+                    <div class="detail-value">${app.experience || 'غير مذكور'}</div>
+                </div>
+            </div>
+            
+            <div class="application-detail">
+                <h4>المهارات التقنية</h4>
+                <div class="detail-row">
+                    <div class="detail-label">التعرف على القطع الإلكترونية:</div>
+                    <div class="detail-value">${app.skill_electronics || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">برامج رسم الدوائر:</div>
+                    <div class="detail-value">${app.circuit_design_software || 'غير مذكور'}</div>
+                </div>
+                ${app.circuit_software_details ? `
+                <div class="detail-row">
+                    <div class="detail-label">تفاصيل برامج رسم الدوائر:</div>
+                    <div class="detail-value">${app.circuit_software_details}</div>
+                </div>
+                ` : ''}
+                <div class="detail-row">
+                    <div class="detail-label">برمجة Arduino:</div>
+                    <div class="detail-value">${app.skill_arduino || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">برمجة ESP:</div>
+                    <div class="detail-value">${app.skill_ESP || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">برمجة Raspberry Pi:</div>
+                    <div class="detail-value">${app.skill_rpi || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">متحكمات أخرى:</div>
+                    <div class="detail-value">${app.other_controllers || 'غير مذكور'}</div>
+                </div>
+                ${app.other_controllers_type ? `
+                <div class="detail-row">
+                    <div class="detail-label">نوع المتحكمات الأخرى:</div>
+                    <div class="detail-value">${app.other_controllers_type}</div>
+                </div>
+                ` : ''}
+                ${app.other_controllers_level ? `
+                <div class="detail-row">
+                    <div class="detail-label">مستوى المتحكمات الأخرى:</div>
+                    <div class="detail-value">${app.other_controllers_level}</div>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="application-detail">
+                <h4>التصميم ثلاثي الأبعاد والطباعة</h4>
+                <div class="detail-row">
+                    <div class="detail-label">التصميم ثلاثي الأبعاد:</div>
+                    <div class="detail-value">${app.skill_3d_design || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">التشغيل على طابعات 3D:</div>
+                    <div class="detail-value">${app.skill_3d_printing || 'غير مذكور'}</div>
+                </div>
+                ${app.design_software ? `
+                <div class="detail-row">
+                    <div class="detail-label">برامج التصميم:</div>
+                    <div class="detail-value">${app.design_software}</div>
+                </div>
+                ` : ''}
+                ${app.printers_used ? `
+                <div class="detail-row">
+                    <div class="detail-label">الطابعات المستخدمة:</div>
+                    <div class="detail-value">${app.printers_used}</div>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="application-detail">
+                <h4>خبرات عملية إضافية</h4>
+                <div class="detail-row">
+                    <div class="detail-label">أدوات الورشة:</div>
+                    <div class="detail-value">${app.workshop_tools || 'غير مذكور'}</div>
+                </div>
+                ${app.workshop_tools_details ? `
+                <div class="detail-row">
+                    <div class="detail-label">تفاصيل أدوات الورشة:</div>
+                    <div class="detail-value">${app.workshop_tools_details}</div>
+                </div>
+                ` : ''}
+                <div class="detail-row">
+                    <div class="detail-label">الكهرباء ذات الفولتية العالية:</div>
+                    <div class="detail-value">${app.high_voltage || 'غير مذكور'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">أدوات ومعدات الورش:</div>
+                    <div class="detail-value">${app.workshop_equipment || 'غير مذكور'}</div>
+                </div>
+            </div>
+        `;
         
-        alert(details);
+        // إضافة قسم ملف السيرة الذاتية إذا كان موجوداً
+        if (app._hasFile) {
+            details += `
+                <div class="application-detail">
+                    <h4>ملف السيرة الذاتية</h4>
+                    <div class="file-info">
+                        <div class="detail-row">
+                            <div class="detail-label">اسم الملف:</div>
+                            <div class="detail-value file-name">${app._fileName}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">حجم الملف:</div>
+                            <div class="detail-value file-size">${(app._fileSize / 1024).toFixed(2)} KB</div>
+                        </div>
+                        <div class="actions">
+                            <button class="button success" onclick="downloadFile('${app._id}')">📥 تحميل ملف PDF</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // إضافة معلومات إضافية
+        details += `
+            <div class="application-detail">
+                <h4>معلومات إضافية</h4>
+                <div class="detail-row">
+                    <div class="detail-label">تاريخ التقديم:</div>
+                    <div class="detail-value">${new Date(app._submittedAt).toLocaleString('ar-EG')}</div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('applicationDetailContent').innerHTML = details;
+        showPage('applicationDetail');
     }
     
     function generateContract(id) {
@@ -1229,11 +1714,19 @@
     }
     
     function deleteApplication(id) {
-        if (!confirm('هل أنت متأكد من حذف هذا الطلب؟')) return;
+        if (!confirm('هل أنت متأكد من حذف هذا الطلب؟ سيتم حذف جميع البيانات المرتبطة به بما في ذلك ملف PDF.')) return;
         
         const applications = loadResponses();
         const filtered = applications.filter(a => a._id !== id);
         saveResponses(filtered);
+        
+        // حذف الملف المرتبط إن وجد
+        const files = loadFiles();
+        if (files[id]) {
+            delete files[id];
+            saveFiles(files);
+        }
+        
         loadApplications();
         updateStats();
     }
@@ -1250,17 +1743,130 @@
         weekAgo.setDate(weekAgo.getDate() - 7);
         const newApps = applications.filter(app => new Date(app._submittedAt) > weekAgo);
         document.getElementById('newApplications').textContent = newApps.length;
+        
+        // تحديث عدد الزوار
+        document.getElementById('totalVisitors').textContent = getVisitorCount();
     }
     
-    function exportData() {
+    // تصدير جميع البيانات إلى Excel
+    function exportAllData() {
         const applications = loadResponses();
-        const dataStr = JSON.stringify(applications, null, 2);
-        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        exportToExcel(applications, 'جميع_الطلبات');
+    }
+    
+    // تصدير البيانات المحددة إلى Excel
+    function exportSelectedData() {
+        const selectedCheckboxes = document.querySelectorAll('.application-checkbox:checked');
+        if (selectedCheckboxes.length === 0) {
+            alert('يرجى تحديد طلب واحد على الأقل');
+            return;
+        }
         
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(dataBlob);
-        link.download = `skytech_applications_${new Date().toISOString().slice(0,10)}.json`;
+        const applications = loadResponses();
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+        const selectedApplications = applications.filter(app => selectedIds.includes(app._id));
+        
+        exportToExcel(selectedApplications, 'الطلبات_المحددة');
+    }
+    
+    // تصدير البيانات إلى Excel
+    function exportToExcel(data, filename) {
+        if (data.length === 0) {
+            alert('لا توجد بيانات للتصدير');
+            return;
+        }
+        
+        // إنشاء رأس جدول Excel
+        let csvContent = "data:text/csv;charset=utf-8,\ufeff";
+        
+        // إضافة رأس الجدول
+        const headers = [
+            "الرقم التسلسلي",
+            "الاسم الكامل",
+            "الجنس",
+            "تاريخ الميلاد",
+            "رقم البطاقة/الهوية",
+            "رقم الهاتف",
+            "البريد الإلكتروني",
+            "عنوان السكن",
+            "وسيلة نقل",
+            "التفرغ",
+            "سبب عدم التفرغ",
+            "أعلى مؤهل",
+            "التخصص",
+            "الخبرات السابقة",
+            "التعرف على القطع الإلكترونية",
+            "برامج رسم الدوائر",
+            "تفاصيل برامج رسم الدوائر",
+            "برمجة Arduino",
+            "برمجة ESP",
+            "برمجة Raspberry Pi",
+            "متحكمات أخرى",
+            "نوع المتحكمات الأخرى",
+            "مستوى المتحكمات الأخرى",
+            "التصميم ثلاثي الأبعاد",
+            "التشغيل على طابعات 3D",
+            "برامج التصميم",
+            "الطابعات المستخدمة",
+            "أدوات الورشة",
+            "تفاصيل أدوات الورشة",
+            "الكهرباء ذات الفولتية العالية",
+            "أدوات ومعدات الورش",
+            "ملف السيرة الذاتية",
+            "تاريخ التقديم"
+        ];
+        
+        csvContent += headers.join(",") + "\r\n";
+        
+        // إضافة البيانات
+        data.forEach((app, index) => {
+            const row = [
+                index + 1,
+                app.fullName || '',
+                app.gender || '',
+                app.dob || '',
+                app.idNumber || '',
+                app.phone || '',
+                app.email || '',
+                app.address || '',
+                app.hasTransport || '',
+                app.isAvailable || '',
+                app.availabilityReason || '',
+                app.education || '',
+                app.specialty || '',
+                app.experience || '',
+                app.skill_electronics || '',
+                app.circuit_design_software || '',
+                app.circuit_software_details || '',
+                app.skill_arduino || '',
+                app.skill_ESP || '',
+                app.skill_rpi || '',
+                app.other_controllers || '',
+                app.other_controllers_type || '',
+                app.other_controllers_level || '',
+                app.skill_3d_design || '',
+                app.skill_3d_printing || '',
+                app.design_software || '',
+                app.printers_used || '',
+                app.workshop_tools || '',
+                app.workshop_tools_details || '',
+                app.high_voltage || '',
+                app.workshop_equipment || '',
+                app._hasFile ? 'نعم - ' + (app._fileName || '') : 'لا',
+                new Date(app._submittedAt).toLocaleDateString('ar-EG')
+            ].map(field => `"${field}"`).join(",");
+            
+            csvContent += row + "\r\n";
+        });
+        
+        // إنشاء رابط التحميل
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `${filename}_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
     }
     
     function clearAllData() {
@@ -1268,6 +1874,7 @@
         
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(STORAGE_CONTRACTS);
+        localStorage.removeItem(STORAGE_FILES);
         loadApplications();
         updateStats();
         alert('تم حذف جميع البيانات');
@@ -1387,10 +1994,18 @@
     
     // التهيئة الأولية عند تحميل الصفحة
     document.addEventListener('DOMContentLoaded', function() {
-        // إخفاء محتوى الإدارة والعقد عن العامة
-        document.querySelectorAll('.admin-only').forEach(el => {
-            el.style.display = 'none';
-        });
+        // زيادة عدد الزوار عند تحميل الصفحة
+        incrementVisitorCount();
+        
+        // التحقق من حالة تسجيل الدخول
+        if (checkLoginStatus()) {
+            login();
+        } else {
+            // إخفاء محتوى الإدارة والعقد عن العامة
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.style.display = 'none';
+            });
+        }
         
         updateStats();
         renderSavedContracts();
