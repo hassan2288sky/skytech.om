@@ -1,8 +1,11 @@
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>نظام التوظيف - سماء التقنية</title>
+    <!-- إضافة مكتبة Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         /* الأنماط الأصلية تبقى كما هي */
         :root {
@@ -538,6 +541,33 @@
             color: #999;
             font-style: italic;
         }
+        
+        /* أنماط جديدة للمزامنة */
+        .sync-status {
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+        
+        .sync-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .sync-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .sync-loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
     </style>
 </head>
 <body>
@@ -622,6 +652,9 @@
     <div id="apply" class="page">
         <section class="card">
             <h2>نموذج بيانات المتقدم - سماء التقنية</h2>
+            
+            <div class="sync-status" id="syncStatus"></div>
+            
             <form id="applyForm">
                 <h3>معلومات أساسية</h3>
                 <label>الاسم الكامل *</label>
@@ -983,6 +1016,8 @@
             <div id="adminContent" class="admin-only">
                 <h2>لوحة إدارة طلبات التوظيف</h2>
                 
+                <div class="sync-status" id="adminSyncStatus"></div>
+                
                 <div class="stats">
                     <div class="stat-card">
                         <div>إجمالي الطلبات</div>
@@ -1045,6 +1080,10 @@
 </footer>
 
 <script>
+    // =============================================
+    // الإعدادات الأساسية
+    // =============================================
+    
     // الثوابت والمتغيرات العامة
     const STORAGE_KEY = 'skytech_responses';
     const STORAGE_CONTRACTS = 'skytech_contracts';
@@ -1052,6 +1091,232 @@
     const VISITOR_COUNT_KEY = 'skytech_visitor_count';
     const ADMIN_PASSWORD = 'sky222025';
     const LOGIN_STATUS_KEY = 'skytech_admin_logged_in';
+    
+    // =============================================
+    // إعدادات Supabase - استبدل هذه القيم بمعلومات مشروعك
+    // =============================================
+    const SUPABASE_URL = 'https://wmtfeavgzrotcjjfmsxk.supabase.co'; // استبدل بـ URL مشروعك
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtdGZlYXZnenJvdGNqamZtc3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTA1OTYsImV4cCI6MjA3NTQ4NjU5Nn0.T7EguSI_idH8BbnEdDbgSHKcySpomHsWq98_GODs5V0'; // استبدل بـ Anon Key مشروعك
+    
+    // تهيئة Supabase
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // =============================================
+    // دوال إدارة الحالة
+    // =============================================
+    
+    // إظهار رسالة حالة المزامنة
+    function showSyncStatus(message, type, elementId = 'syncStatus') {
+        const statusEl = document.getElementById(elementId);
+        statusEl.textContent = message;
+        statusEl.className = 'sync-status';
+        statusEl.classList.add(`sync-${type}`);
+        statusEl.style.display = 'block';
+        
+        if (type !== 'loading') {
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 5000);
+        }
+    }
+    
+    // =============================================
+    // دوال Supabase
+    // =============================================
+    
+    // مزامنة البيانات المحلية مع Supabase
+    async function syncWithSupabase() {
+        try {
+            showSyncStatus('جاري مزامنة البيانات مع السحابة...', 'loading');
+            
+            // مزامنة الطلبات
+            const localApplications = loadResponses();
+            if (localApplications.length > 0) {
+                for (const app of localApplications) {
+                    await saveApplicationToSupabase(app);
+                }
+            }
+
+            // مزامنة العقود
+            const localContracts = loadContracts();
+            if (localContracts.length > 0) {
+                for (const contract of localContracts) {
+                    await saveContractToSupabase(contract);
+                }
+            }
+
+            showSyncStatus('✅ تمت مزامنة البيانات مع السحابة بنجاح', 'success');
+        } catch (error) {
+            console.error('خطأ في المزامنة:', error);
+            showSyncStatus('❌ فشل في مزامنة البيانات مع السحابة', 'error');
+        }
+    }
+
+    // حفظ طلب في Supabase
+    async function saveApplicationToSupabase(application) {
+        try {
+            const { data, error } = await supabase
+                .from('applications')
+                .upsert({
+                    local_id: application._id,
+                    full_name: application.fullName,
+                    gender: application.gender,
+                    dob: application.dob,
+                    id_number: application.idNumber,
+                    phone: application.phone,
+                    email: application.email,
+                    address: application.address,
+                    has_transport: application.hasTransport,
+                    is_available: application.isAvailable,
+                    availability_reason: application.availabilityReason,
+                    education: application.education,
+                    specialty: application.specialty,
+                    experience: application.experience,
+                    skill_electronics: application.skill_electronics,
+                    circuit_design_software: application.circuit_design_software,
+                    circuit_software_details: application.circuit_software_details,
+                    skill_arduino: application.skill_arduino,
+                    skill_esp: application.skill_ESP,
+                    skill_rpi: application.skill_rpi,
+                    other_controllers: application.other_controllers,
+                    other_controllers_type: application.other_controllers_type,
+                    other_controllers_level: application.other_controllers_level,
+                    skill_3d_design: application.skill_3d_design,
+                    skill_3d_printing: application.skill_3d_printing,
+                    design_software: application.design_software,
+                    printers_used: application.printers_used,
+                    workshop_tools: application.workshop_tools,
+                    workshop_tools_details: application.workshop_tools_details,
+                    high_voltage: application.high_voltage,
+                    workshop_equipment: application.workshop_equipment,
+                    has_file: application._hasFile,
+                    file_name: application._fileName,
+                    file_size: application._fileSize,
+                    submitted_at: application._submittedAt,
+                    created_at: new Date().toISOString()
+                }, {
+                    onConflict: 'local_id'
+                });
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('خطأ في حفظ الطلب:', error);
+            throw error;
+        }
+    }
+
+    // حفظ عقد في Supabase
+    async function saveContractToSupabase(contract) {
+        try {
+            const { data, error } = await supabase
+                .from('contracts')
+                .upsert({
+                    contract_number: contract.contractNumber,
+                    contract_date: contract.contractDate,
+                    employee_name: contract.name,
+                    employee_id: contract.id,
+                    employee_address: contract.address,
+                    employee_skill: contract.skill,
+                    rate_percentage: contract.rate,
+                    start_date: contract.start,
+                    employee_signature: contract.empSig,
+                    company_signature: contract.compSig,
+                    saved_at: contract.savedAt,
+                    created_at: new Date().toISOString()
+                }, {
+                    onConflict: 'contract_number'
+                });
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('خطأ في حفظ العقد:', error);
+            throw error;
+        }
+    }
+
+    // جلب جميع الطلبات من Supabase
+    async function loadApplicationsFromSupabase() {
+        try {
+            const { data, error } = await supabase
+                .from('applications')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('خطأ في جلب الطلبات:', error);
+            return [];
+        }
+    }
+
+    // جلب جميع العقود من Supabase
+    async function loadContractsFromSupabase() {
+        try {
+            const { data, error } = await supabase
+                .from('contracts')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('خطأ في جلب العقود:', error);
+            return [];
+        }
+    }
+
+    // دالة محسنة لتحميل الطلبات (تدمج البيانات المحلية والسحابية)
+    async function enhancedLoadApplications() {
+        try {
+            showSyncStatus('جاري تحميل البيانات من السحابة...', 'loading', 'adminSyncStatus');
+            
+            // جلب البيانات من السحابة
+            const cloudApplications = await loadApplicationsFromSupabase();
+            
+            // جلب البيانات المحلية
+            const localApplications = loadResponses();
+            
+            // دمج البيانات (إعطاء الأولوية للسحابة)
+            const allApplications = [...cloudApplications, ...localApplications];
+            
+            // إزالة التكرارات بناءً على local_id
+            const uniqueApplications = allApplications.filter((app, index, self) =>
+                index === self.findIndex(a => 
+                    (a.local_id && a.local_id === app.local_id) || 
+                    (a._id && a._id === app._id)
+                )
+            );
+            
+            showSyncStatus('✅ تم تحميل البيانات بنجاح', 'success', 'adminSyncStatus');
+            return uniqueApplications;
+        } catch (error) {
+            console.error('خطأ في تحميل البيانات:', error);
+            showSyncStatus('❌ فشل في تحميل البيانات من السحابة', 'error', 'adminSyncStatus');
+            return loadResponses(); // العودة للبيانات المحلية في حالة الخطأ
+        }
+    }
+
+    // دالة محسنة لحفظ الطلبات (تحفظ في كلا المكانين)
+    async function enhancedSaveApplication(application) {
+        // الحفظ المحلي (كما كان)
+        const arr = loadResponses();
+        arr.push(application);
+        saveResponses(arr);
+        
+        // الحفظ في السحابة
+        try {
+            await saveApplicationToSupabase(application);
+        } catch (error) {
+            console.warn('تعذر الحفظ في السحابة، سيتم الاعتماد على التخزين المحلي');
+        }
+    }
+
+    // =============================================
+    // الدوال الأصلية (مع تعديلات طفيفة لدعم Supabase)
+    // =============================================
     
     // إضافة دالة للتحقق من رفع ملف PDF
     function confirmPDFUpload() {
@@ -1385,10 +1650,8 @@
             obj._hasFile = false;
         }
         
-        // تحميل الطلبات الحالية وإضافة الجديد
-        const arr = loadResponses();
-        arr.push(obj);
-        saveResponses(arr);
+        // الحفظ المحلي وفي السحابة
+        await enhancedSaveApplication(obj);
         
         // إعادة تعيين النموذج وإظهار رسالة التأكيد
         form.reset();
@@ -1408,8 +1671,8 @@
     });
     
     // وظائف لوحة الإدارة
-    function loadApplications() {
-        const applications = loadResponses();
+    async function loadApplications() {
+        const applications = await enhancedLoadApplications();
         const container = document.getElementById('applicationsList');
         
         if (applications.length === 0) {
@@ -1435,26 +1698,33 @@
         `;
         
         applications.forEach((app, index) => {
-            const date = new Date(app._submittedAt).toLocaleDateString('ar-EG');
-            const fileInfo = app._hasFile ? 
-                `<span class="file-name">${app._fileName}</span><br><span class="file-size">(${(app._fileSize / 1024).toFixed(2)} KB)</span>` : 
+            const submittedAt = app._submittedAt || app.submitted_at;
+            const date = new Date(submittedAt).toLocaleDateString('ar-EG');
+            const hasFile = app._hasFile || app.has_file;
+            const fileName = app._fileName || app.file_name;
+            const fileSize = app._fileSize || app.file_size;
+            
+            const fileInfo = hasFile ? 
+                `<span class="file-name">${fileName}</span><br><span class="file-size">(${(fileSize / 1024).toFixed(2)} KB)</span>` : 
                 '<span class="no-file">لا يوجد ملف</span>';
+            
+            const appId = app._id || app.local_id;
             
             html += `
                 <tr>
                     <td class="serial-number">${index + 1}</td>
-                    <td><input type="checkbox" class="application-checkbox" value="${app._id}"></td>
-                    <td>${app.fullName || 'غير مذكور'}</td>
+                    <td><input type="checkbox" class="application-checkbox" value="${appId}"></td>
+                    <td>${app.fullName || app.full_name || 'غير مذكور'}</td>
                     <td>${app.phone || 'غير مذكور'}</td>
                     <td>${app.email || 'غير مذكور'}</td>
                     <td>${fileInfo}</td>
                     <td>${date}</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="button" onclick="viewApplicationDetail('${app._id}')">عرض</button>
-                            <button class="button outline" onclick="generateContract('${app._id}')">عقد</button>
-                            <button class="button danger" onclick="deleteApplication('${app._id}')">حذف</button>
-                            ${app._hasFile ? `<button class="button success" onclick="downloadFile('${app._id}')">📥 تحميل PDF</button>` : ''}
+                            <button class="button" onclick="viewApplicationDetail('${appId}')">عرض</button>
+                            <button class="button outline" onclick="generateContract('${appId}')">عقد</button>
+                            <button class="button danger" onclick="deleteApplication('${appId}')">حذف</button>
+                            ${hasFile ? `<button class="button success" onclick="downloadFile('${appId}')">📥 تحميل PDF</button>` : ''}
                         </div>
                     </td>
                 </tr>
@@ -1491,9 +1761,9 @@
     }
     
     // عرض تفاصيل الطلب في صفحة جديدة
-    function viewApplicationDetail(id) {
-        const applications = loadResponses();
-        const app = applications.find(a => a._id === id);
+    async function viewApplicationDetail(id) {
+        const applications = await enhancedLoadApplications();
+        const app = applications.find(a => (a._id === id) || (a.local_id === id));
         
         if (!app) {
             alert('لم يتم العثور على الطلب');
@@ -1505,7 +1775,7 @@
                 <h4>المعلومات الأساسية</h4>
                 <div class="detail-row">
                     <div class="detail-label">الاسم الكامل:</div>
-                    <div class="detail-value">${app.fullName || 'غير مذكور'}</div>
+                    <div class="detail-value">${app.fullName || app.full_name || 'غير مذكور'}</div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">الجنس:</div>
@@ -1517,7 +1787,7 @@
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">رقم البطاقة/الهوية:</div>
-                    <div class="detail-value">${app.idNumber || 'غير مذكور'}</div>
+                    <div class="detail-value">${app.idNumber || app.id_number || 'غير مذكور'}</div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">رقم الهاتف:</div>
@@ -1533,16 +1803,16 @@
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">وسيلة نقل:</div>
-                    <div class="detail-value">${app.hasTransport || 'غير مذكور'}</div>
+                    <div class="detail-value">${app.hasTransport || app.has_transport || 'غير مذكور'}</div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">التفرغ:</div>
-                    <div class="detail-value">${app.isAvailable || 'غير مذكور'}</div>
+                    <div class="detail-value">${app.isAvailable || app.is_available || 'غير مذكور'}</div>
                 </div>
-                ${app.availabilityReason ? `
+                ${(app.availabilityReason || app.availability_reason) ? `
                 <div class="detail-row">
                     <div class="detail-label">سبب عدم التفرغ:</div>
-                    <div class="detail-value">${app.availabilityReason}</div>
+                    <div class="detail-value">${app.availabilityReason || app.availability_reason}</div>
                 </div>
                 ` : ''}
             </div>
@@ -1573,7 +1843,7 @@
                     <div class="detail-label">برامج رسم الدوائر:</div>
                     <div class="detail-value">${app.circuit_design_software || 'غير مذكور'}</div>
                 </div>
-                ${app.circuit_software_details ? `
+                ${(app.circuit_software_details) ? `
                 <div class="detail-row">
                     <div class="detail-label">تفاصيل برامج رسم الدوائر:</div>
                     <div class="detail-value">${app.circuit_software_details}</div>
@@ -1585,7 +1855,7 @@
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">برمجة ESP:</div>
-                    <div class="detail-value">${app.skill_ESP || 'غير مذكور'}</div>
+                    <div class="detail-value">${app.skill_ESP || app.skill_esp || 'غير مذكور'}</div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">برمجة Raspberry Pi:</div>
@@ -1595,13 +1865,13 @@
                     <div class="detail-label">متحكمات أخرى:</div>
                     <div class="detail-value">${app.other_controllers || 'غير مذكور'}</div>
                 </div>
-                ${app.other_controllers_type ? `
+                ${(app.other_controllers_type) ? `
                 <div class="detail-row">
                     <div class="detail-label">نوع المتحكمات الأخرى:</div>
                     <div class="detail-value">${app.other_controllers_type}</div>
                 </div>
                 ` : ''}
-                ${app.other_controllers_level ? `
+                ${(app.other_controllers_level) ? `
                 <div class="detail-row">
                     <div class="detail-label">مستوى المتحكمات الأخرى:</div>
                     <div class="detail-value">${app.other_controllers_level}</div>
@@ -1619,13 +1889,13 @@
                     <div class="detail-label">التشغيل على طابعات 3D:</div>
                     <div class="detail-value">${app.skill_3d_printing || 'غير مذكور'}</div>
                 </div>
-                ${app.design_software ? `
+                ${(app.design_software) ? `
                 <div class="detail-row">
                     <div class="detail-label">برامج التصميم:</div>
                     <div class="detail-value">${app.design_software}</div>
                 </div>
                 ` : ''}
-                ${app.printers_used ? `
+                ${(app.printers_used) ? `
                 <div class="detail-row">
                     <div class="detail-label">الطابعات المستخدمة:</div>
                     <div class="detail-value">${app.printers_used}</div>
@@ -1639,7 +1909,7 @@
                     <div class="detail-label">أدوات الورشة:</div>
                     <div class="detail-value">${app.workshop_tools || 'غير مذكور'}</div>
                 </div>
-                ${app.workshop_tools_details ? `
+                ${(app.workshop_tools_details) ? `
                 <div class="detail-row">
                     <div class="detail-label">تفاصيل أدوات الورشة:</div>
                     <div class="detail-value">${app.workshop_tools_details}</div>
@@ -1657,21 +1927,25 @@
         `;
         
         // إضافة قسم ملف السيرة الذاتية إذا كان موجوداً
-        if (app._hasFile) {
+        const hasFile = app._hasFile || app.has_file;
+        if (hasFile) {
+            const fileName = app._fileName || app.file_name;
+            const fileSize = app._fileSize || app.file_size;
+            
             details += `
                 <div class="application-detail">
                     <h4>ملف السيرة الذاتية</h4>
                     <div class="file-info">
                         <div class="detail-row">
                             <div class="detail-label">اسم الملف:</div>
-                            <div class="detail-value file-name">${app._fileName}</div>
+                            <div class="detail-value file-name">${fileName}</div>
                         </div>
                         <div class="detail-row">
                             <div class="detail-label">حجم الملف:</div>
-                            <div class="detail-value file-size">${(app._fileSize / 1024).toFixed(2)} KB</div>
+                            <div class="detail-value file-size">${(fileSize / 1024).toFixed(2)} KB</div>
                         </div>
                         <div class="actions">
-                            <button class="button success" onclick="downloadFile('${app._id}')">📥 تحميل ملف PDF</button>
+                            <button class="button success" onclick="downloadFile('${app._id || app.local_id}')">📥 تحميل ملف PDF</button>
                         </div>
                     </div>
                 </div>
@@ -1679,12 +1953,13 @@
         }
         
         // إضافة معلومات إضافية
+        const submittedAt = app._submittedAt || app.submitted_at;
         details += `
             <div class="application-detail">
                 <h4>معلومات إضافية</h4>
                 <div class="detail-row">
                     <div class="detail-label">تاريخ التقديم:</div>
-                    <div class="detail-value">${new Date(app._submittedAt).toLocaleString('ar-EG')}</div>
+                    <div class="detail-value">${new Date(submittedAt).toLocaleString('ar-EG')}</div>
                 </div>
             </div>
         `;
@@ -1693,9 +1968,9 @@
         showPage('applicationDetail');
     }
     
-    function generateContract(id) {
-        const applications = loadResponses();
-        const app = applications.find(a => a._id === id);
+    async function generateContract(id) {
+        const applications = await enhancedLoadApplications();
+        const app = applications.find(a => (a._id === id) || (a.local_id === id));
         
         if (!app) {
             alert('لم يتم العثور على الطلب');
@@ -1703,8 +1978,8 @@
         }
         
         // تعبئة بيانات العقد
-        document.getElementById('c_name').value = app.fullName || '';
-        document.getElementById('c_id').value = app.idNumber || '';
+        document.getElementById('c_name').value = app.fullName || app.full_name || '';
+        document.getElementById('c_id').value = app.idNumber || app.id_number || '';
         document.getElementById('c_address').value = app.address || '';
         document.getElementById('c_skill').value = (app.specialty || '') + (app.other_programming ? ' - ' + app.other_programming : '');
         document.getElementById('c_start').value = new Date().toISOString().slice(0,10);
@@ -1713,9 +1988,22 @@
         showPage('contract');
     }
     
-    function deleteApplication(id) {
+    async function deleteApplication(id) {
         if (!confirm('هل أنت متأكد من حذف هذا الطلب؟ سيتم حذف جميع البيانات المرتبطة به بما في ذلك ملف PDF.')) return;
         
+        try {
+            // حذف من السحابة
+            const { error } = await supabase
+                .from('applications')
+                .delete()
+                .eq('local_id', id);
+            
+            if (error) console.warn('لم يتم الحذف من السحابة:', error);
+        } catch (error) {
+            console.warn('تعذر الحذف من السحابة:', error);
+        }
+        
+        // حذف محلي (كما كان)
         const applications = loadResponses();
         const filtered = applications.filter(a => a._id !== id);
         saveResponses(filtered);
@@ -1731,17 +2019,24 @@
         updateStats();
     }
     
-    function updateStats() {
-        const applications = loadResponses();
-        const contracts = loadContracts();
+    async function updateStats() {
+        const applications = await enhancedLoadApplications();
+        const contracts = await loadContractsFromSupabase();
+        const localContracts = loadContracts();
+        
+        // دمج العقود من السحابة والمحلية
+        const allContracts = [...contracts, ...localContracts];
         
         document.getElementById('totalApplications').textContent = applications.length;
-        document.getElementById('totalContracts').textContent = contracts.length;
+        document.getElementById('totalContracts').textContent = allContracts.length;
         
         // حساب الطلبات الجديدة (آخر 7 أيام)
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
-        const newApps = applications.filter(app => new Date(app._submittedAt) > weekAgo);
+        const newApps = applications.filter(app => {
+            const submittedAt = app._submittedAt || app.submitted_at;
+            return new Date(submittedAt) > weekAgo;
+        });
         document.getElementById('newApplications').textContent = newApps.length;
         
         // تحديث عدد الزوار
@@ -1749,22 +2044,24 @@
     }
     
     // تصدير جميع البيانات إلى Excel
-    function exportAllData() {
-        const applications = loadResponses();
+    async function exportAllData() {
+        const applications = await enhancedLoadApplications();
         exportToExcel(applications, 'جميع_الطلبات');
     }
     
     // تصدير البيانات المحددة إلى Excel
-    function exportSelectedData() {
+    async function exportSelectedData() {
         const selectedCheckboxes = document.querySelectorAll('.application-checkbox:checked');
         if (selectedCheckboxes.length === 0) {
             alert('يرجى تحديد طلب واحد على الأقل');
             return;
         }
         
-        const applications = loadResponses();
+        const applications = await enhancedLoadApplications();
         const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.value);
-        const selectedApplications = applications.filter(app => selectedIds.includes(app._id));
+        const selectedApplications = applications.filter(app => 
+            selectedIds.includes(app._id) || selectedIds.includes(app.local_id)
+        );
         
         exportToExcel(selectedApplications, 'الطلبات_المحددة');
     }
@@ -1820,18 +2117,19 @@
         
         // إضافة البيانات
         data.forEach((app, index) => {
+            const submittedAt = app._submittedAt || app.submitted_at;
             const row = [
                 index + 1,
-                app.fullName || '',
+                app.fullName || app.full_name || '',
                 app.gender || '',
                 app.dob || '',
-                app.idNumber || '',
+                app.idNumber || app.id_number || '',
                 app.phone || '',
                 app.email || '',
                 app.address || '',
-                app.hasTransport || '',
-                app.isAvailable || '',
-                app.availabilityReason || '',
+                app.hasTransport || app.has_transport || '',
+                app.isAvailable || app.is_available || '',
+                app.availabilityReason || app.availability_reason || '',
                 app.education || '',
                 app.specialty || '',
                 app.experience || '',
@@ -1839,7 +2137,7 @@
                 app.circuit_design_software || '',
                 app.circuit_software_details || '',
                 app.skill_arduino || '',
-                app.skill_ESP || '',
+                app.skill_ESP || app.skill_esp || '',
                 app.skill_rpi || '',
                 app.other_controllers || '',
                 app.other_controllers_type || '',
@@ -1852,8 +2150,8 @@
                 app.workshop_tools_details || '',
                 app.high_voltage || '',
                 app.workshop_equipment || '',
-                app._hasFile ? 'نعم - ' + (app._fileName || '') : 'لا',
-                new Date(app._submittedAt).toLocaleDateString('ar-EG')
+                (app._hasFile || app.has_file) ? 'نعم - ' + (app._fileName || app.file_name || '') : 'لا',
+                new Date(submittedAt).toLocaleDateString('ar-EG')
             ].map(field => `"${field}"`).join(",");
             
             csvContent += row + "\r\n";
@@ -1869,12 +2167,32 @@
         document.body.removeChild(link);
     }
     
-    function clearAllData() {
+    async function clearAllData() {
         if (!confirm('هل أنت متأكد من حذف جميع البيانات؟ لا يمكن التراجع عن هذا الإجراء.')) return;
         
+        try {
+            // حذف من السحابة
+            const { error: appError } = await supabase
+                .from('applications')
+                .delete()
+                .neq('id', 0); // حذف جميع السجلات
+            
+            const { error: contractError } = await supabase
+                .from('contracts')
+                .delete()
+                .neq('id', 0); // حذف جميع السجلات
+            
+            if (appError) console.warn('لم يتم حذف الطلبات من السحابة:', appError);
+            if (contractError) console.warn('لم يتم حذف العقود من السحابة:', contractError);
+        } catch (error) {
+            console.warn('تعذر الحذف من السحابة:', error);
+        }
+        
+        // حذف محلي
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(STORAGE_CONTRACTS);
         localStorage.removeItem(STORAGE_FILES);
+        
         loadApplications();
         updateStats();
         alert('تم حذف جميع البيانات');
@@ -1896,17 +2214,17 @@
     document.getElementById('contractNumber').textContent = 'رقم العقد: ' + genContractNumber();
     document.getElementById('contractDate').textContent = 'تاريخ العقد: ' + genDateStr();
     
-    document.getElementById('fillFromData').addEventListener('click', function() {
-        const applications = loadResponses();
+    document.getElementById('fillFromData').addEventListener('click', async function() {
+        const applications = await enhancedLoadApplications();
         if (applications.length === 0) {
             alert('لا توجد طلبات مقدمه حتى الآن.');
             return;
         }
         
         // استخدام أحدث طلب
-        const latest = applications[applications.length - 1];
-        document.getElementById('c_name').value = latest.fullName || '';
-        document.getElementById('c_id').value = latest.idNumber || '';
+        const latest = applications[0]; // الأول هو الأحدث
+        document.getElementById('c_name').value = latest.fullName || latest.full_name || '';
+        document.getElementById('c_id').value = latest.idNumber || latest.id_number || '';
         document.getElementById('c_address').value = latest.address || '';
         document.getElementById('c_skill').value = (latest.specialty || '') + (latest.other_programming ? ' - ' + latest.other_programming : '');
         document.getElementById('c_start').value = new Date().toISOString().slice(0,10);
@@ -1918,7 +2236,7 @@
         window.print();
     });
     
-    document.getElementById('saveLocal').addEventListener('click', function() {
+    document.getElementById('saveLocal').addEventListener('click', async function() {
         const obj = {
             contractNumber: document.getElementById('contractNumber').textContent.replace('رقم العقد: ', ''),
             contractDate: document.getElementById('contractDate').textContent.replace('تاريخ العقد: ', ''),
@@ -1933,27 +2251,45 @@
             savedAt: new Date().toISOString()
         };
         
+        // الحفظ المحلي
         const arr = loadContracts();
         arr.push(obj);
         saveContracts(arr);
-        alert('تم حفظ العقد محليًا');
+        
+        // الحفظ في السحابة
+        try {
+            await saveContractToSupabase(obj);
+        } catch (error) {
+            console.warn('تعذر الحفظ في السحابة:', error);
+        }
+        
+        alert('تم حفظ العقد محليًا وفي السحابة');
         renderSavedContracts();
     });
     
-    function renderSavedContracts() {
-        const arr = loadContracts();
+    async function renderSavedContracts() {
+        const cloudContracts = await loadContractsFromSupabase();
+        const localContracts = loadContracts();
+        
+        // دمج العقود
+        const allContracts = [...cloudContracts, ...localContracts];
+        
         const wrap = document.getElementById('savedList');
         const card = document.getElementById('savedListCard');
         
-        if (!arr.length) { 
+        if (allContracts.length === 0) { 
             card.style.display = 'none'; 
             return; 
         }
         
         card.style.display = 'block';
-        wrap.innerHTML = arr.map((c, i) => {
+        wrap.innerHTML = allContracts.map((c, i) => {
+            const contractNumber = c.contractNumber || c.contract_number;
+            const name = c.name || c.employee_name;
+            const savedAt = c.savedAt || c.saved_at;
+            
             return `<div class="contract-item">
-                <strong>${c.contractNumber}</strong> - ${c.name} - ${new Date(c.savedAt).toLocaleString('ar-EG')}
+                <strong>${contractNumber}</strong> - ${name} - ${new Date(savedAt).toLocaleString('ar-EG')}
                 <div style="margin-top: 10px;">
                     <button class="button" onclick="loadSavedContract(${i})">تحميل</button>
                     <button class="button danger" onclick="deleteSavedContract(${i})">حذف</button>
@@ -1962,32 +2298,74 @@
         }).join('');
     }
     
-    function loadSavedContract(i) {
-        const arr = loadContracts();
-        const c = arr[i];
+    async function loadSavedContract(i) {
+        const cloudContracts = await loadContractsFromSupabase();
+        const localContracts = loadContracts();
+        const allContracts = [...cloudContracts, ...localContracts];
+        
+        const c = allContracts[i];
         if (!c) return;
         
-        document.getElementById('contractNumber').textContent = 'رقم العقد: ' + c.contractNumber;
-        document.getElementById('contractDate').textContent = 'تاريخ العقد: ' + c.contractDate;
-        document.getElementById('c_name').value = c.name;
-        document.getElementById('c_id').value = c.id;
-        document.getElementById('c_address').value = c.address;
-        document.getElementById('c_skill').value = c.skill;
-        document.getElementById('c_rate').value = c.rate;
-        document.getElementById('c_start').value = c.start;
-        document.getElementById('sig_emp').value = c.empSig;
-        document.getElementById('sig_comp').value = c.compSig;
+        const contractNumber = c.contractNumber || c.contract_number;
+        const contractDate = c.contractDate || c.contract_date;
+        const name = c.name || c.employee_name;
+        const id = c.id || c.employee_id;
+        const address = c.address || c.employee_address;
+        const skill = c.skill || c.employee_skill;
+        const rate = c.rate || c.rate_percentage;
+        const start = c.start || c.start_date;
+        const empSig = c.empSig || c.employee_signature;
+        const compSig = c.compSig || c.company_signature;
+        
+        document.getElementById('contractNumber').textContent = 'رقم العقد: ' + contractNumber;
+        document.getElementById('contractDate').textContent = 'تاريخ العقد: ' + contractDate;
+        document.getElementById('c_name').value = name;
+        document.getElementById('c_id').value = id;
+        document.getElementById('c_address').value = address;
+        document.getElementById('c_skill').value = skill;
+        document.getElementById('c_rate').value = rate;
+        document.getElementById('c_start').value = start;
+        document.getElementById('sig_emp').value = empSig;
+        document.getElementById('sig_comp').value = compSig;
         
         window.scrollTo({top: 0, behavior: 'smooth'});
         alert('تم تحميل العقد المحفوظ');
     }
     
-    function deleteSavedContract(i) {
+    async function deleteSavedContract(i) {
         if (!confirm('حذف العقد المحفوظ؟')) return;
         
-        const arr = loadContracts();
-        arr.splice(i, 1);
-        saveContracts(arr);
+        const cloudContracts = await loadContractsFromSupabase();
+        const localContracts = loadContracts();
+        const allContracts = [...cloudContracts, ...localContracts];
+        
+        const contractToDelete = allContracts[i];
+        if (!contractToDelete) return;
+        
+        // حذف من السحابة إذا كان عقد سحابي
+        if (contractToDelete.id) { // إذا كان له id فهو من السحابة
+            try {
+                const { error } = await supabase
+                    .from('contracts')
+                    .delete()
+                    .eq('id', contractToDelete.id);
+                
+                if (error) throw error;
+            } catch (error) {
+                console.warn('تعذر الحذف من السحابة:', error);
+            }
+        }
+        
+        // حذف محلي
+        const updatedLocalContracts = localContracts.filter((c, index) => {
+            // حذف العقد المحلي الذي يتوافق مع الفهرس
+            if (index === i && !contractToDelete.id) {
+                return false; // حذفه
+            }
+            return true;
+        });
+        saveContracts(updatedLocalContracts);
+        
         renderSavedContracts();
         alert('تم حذف العقد');
     }
@@ -2009,6 +2387,11 @@
         
         updateStats();
         renderSavedContracts();
+        
+        // مزامنة البيانات مع السحابة (في الخلفية)
+        setTimeout(() => {
+            syncWithSupabase();
+        }, 2000);
     });
 </script>
 
