@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8" />
@@ -7,7 +6,7 @@
     <!-- إضافة مكتبة Supabase -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
-        /* الأنماط الأصلية تبقى كما هي */
+        /* جميع الأنماط السابقة تبقى كما هي */
         :root {
             --blue1: #003366;
             --blue2: #007ba7;
@@ -568,6 +567,26 @@
             color: #0c5460;
             border: 1px solid #bee5eb;
         }
+
+        /* أنماط جديدة لتحميل الملفات */
+        .file-preview {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .file-preview .file-name {
+            color: var(--blue1);
+            font-weight: bold;
+        }
+        
+        .file-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -869,7 +888,13 @@
                 <div class="file-upload">
                     <input type="file" name="cv_file" id="cv_file" accept=".pdf">
                     <p class="note">يرجى رفع ملف PDF فقط (حجم أقصى 5MB)</p>
-                    <button type="button" class="button outline" onclick="confirmPDFUpload()" style="margin-top: 10px;">تأكيد رفع ملف PDF</button>
+                    <div id="filePreview" class="file-preview" style="display: none;">
+                        <div class="file-name" id="fileName"></div>
+                        <div class="file-size" id="fileSize"></div>
+                        <div class="file-actions">
+                            <button type="button" class="button outline" onclick="removeFile()">إزالة الملف</button>
+                        </div>
+                    </div>
                 </div>
 
                 <h3>تأكيد</h3>
@@ -1093,16 +1118,125 @@
     const LOGIN_STATUS_KEY = 'skytech_admin_logged_in';
     
     // =============================================
-    // إعدادات Supabase - استبدل هذه القيم بمعلومات مشروعك
+    // إعدادات Supabase - تم التبسيط
     // =============================================
-    const SUPABASE_URL = 'https://wmtfeavgzrotcjjfmsxk.supabase.co'; // استبدل بـ URL مشروعك
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtdGZlYXZnenJvdGNqamZtc3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTA1OTYsImV4cCI6MjA3NTQ4NjU5Nn0.T7EguSI_idH8BbnEdDbgSHKcySpomHsWq98_GODs5V0'; // استبدل بـ Anon Key مشروعك
+    const SUPABASE_URL = 'https://wmtfeavgzrotcjjfmsxk.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtdGZlYXZnenJvdGNqamZtc3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTA1OTYsImV4cCI6MjA3NTQ4NjU5Nn0.T7EguSI_idH8BbnEdDbgSHKcySpomHsWq98_GODs5V0';
     
     // تهيئة Supabase
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
     // =============================================
-    // دوال إدارة الحالة
+    // دوال إدارة الملفات المحسنة
+    // =============================================
+    
+    // دالة محسنة لتحويل الملف إلى Base64
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                // التأكد من أن النتيجة هي base64 صالحة
+                const base64 = reader.result;
+                if (base64 && base64.startsWith('data:')) {
+                    resolve(base64);
+                } else {
+                    reject(new Error('Failed to convert file to base64'));
+                }
+            };
+            reader.onerror = error => reject(error);
+        });
+    }
+    
+    // دالة محسنة لتحميل الملفات
+    function loadFiles() {
+        try {
+            const raw = localStorage.getItem(STORAGE_FILES);
+            if (!raw) return {};
+            const files = JSON.parse(raw);
+            
+            // تنظيف الملفات التالفة
+            Object.keys(files).forEach(key => {
+                if (!files[key] || !files[key].data || !files[key].data.startsWith('data:')) {
+                    delete files[key];
+                }
+            });
+            
+            return files;
+        } catch (e) {
+            console.error('Error loading files:', e);
+            return {};
+        }
+    }
+    
+    function saveFiles(filesObj) {
+        try {
+            localStorage.setItem(STORAGE_FILES, JSON.stringify(filesObj));
+        } catch (e) {
+            console.error('Error saving files:', e);
+        }
+    }
+    
+    // دالة محسنة لتحميل ملف PDF
+    function downloadFile(applicationId) {
+        try {
+            console.log('Downloading file for application:', applicationId);
+            
+            const files = loadFiles();
+            const fileInfo = files[applicationId];
+            
+            if (!fileInfo) {
+                console.error('File not found in storage for application:', applicationId);
+                alert('❌ الملف غير موجود أو تم حذفه. يرجى التحقق من وجود الملف في التخزين المحلي.');
+                return;
+            }
+            
+            if (!fileInfo.data || !fileInfo.data.startsWith('data:')) {
+                console.error('Invalid file data for application:', applicationId);
+                alert('❌ بيانات الملف تالفة أو غير صالحة.');
+                return;
+            }
+            
+            // إنشاء رابط تحميل
+            const link = document.createElement('a');
+            link.href = fileInfo.data;
+            link.download = fileInfo.name || 'السيرة_الذاتية.pdf';
+            
+            // إضافة الرابط إلى DOM والنقر عليه
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            console.log('File download initiated successfully');
+            
+        } catch (error) {
+            console.error('Error downloading file:', error);
+            alert('❌ حدث خطأ غير متوقع أثناء تحميل الملف. يرجى المحاولة مرة أخرى.');
+        }
+    }
+    
+    // دالة جديدة لعرض معاينة الملف
+    function previewFile(file) {
+        const filePreview = document.getElementById('filePreview');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        
+        fileName.textContent = file.name;
+        fileSize.textContent = `حجم الملف: ${(file.size / 1024).toFixed(2)} KB`;
+        filePreview.style.display = 'block';
+    }
+    
+    // دالة لإزالة الملف المحدد
+    function removeFile() {
+        const fileInput = document.getElementById('cv_file');
+        const filePreview = document.getElementById('filePreview');
+        
+        fileInput.value = '';
+        filePreview.style.display = 'none';
+    }
+    
+    // =============================================
+    // دوال Supabase المبسطة
     // =============================================
     
     // إظهار رسالة حالة المزامنة
@@ -1120,28 +1254,15 @@
         }
     }
     
-    // =============================================
-    // دوال Supabase
-    // =============================================
-    
-    // مزامنة البيانات المحلية مع Supabase
+    // مزامنة البيانات مع Supabase
     async function syncWithSupabase() {
         try {
             showSyncStatus('جاري مزامنة البيانات مع السحابة...', 'loading');
             
-            // مزامنة الطلبات
             const localApplications = loadResponses();
             if (localApplications.length > 0) {
                 for (const app of localApplications) {
                     await saveApplicationToSupabase(app);
-                }
-            }
-
-            // مزامنة العقود
-            const localContracts = loadContracts();
-            if (localContracts.length > 0) {
-                for (const contract of localContracts) {
-                    await saveContractToSupabase(contract);
                 }
             }
 
@@ -1206,36 +1327,6 @@
         }
     }
 
-    // حفظ عقد في Supabase
-    async function saveContractToSupabase(contract) {
-        try {
-            const { data, error } = await supabase
-                .from('contracts')
-                .upsert({
-                    contract_number: contract.contractNumber,
-                    contract_date: contract.contractDate,
-                    employee_name: contract.name,
-                    employee_id: contract.id,
-                    employee_address: contract.address,
-                    employee_skill: contract.skill,
-                    rate_percentage: contract.rate,
-                    start_date: contract.start,
-                    employee_signature: contract.empSig,
-                    company_signature: contract.compSig,
-                    saved_at: contract.savedAt,
-                    created_at: new Date().toISOString()
-                }, {
-                    onConflict: 'contract_number'
-                });
-
-            if (error) throw error;
-            return data;
-        } catch (error) {
-            console.error('خطأ في حفظ العقد:', error);
-            throw error;
-        }
-    }
-
     // جلب جميع الطلبات من Supabase
     async function loadApplicationsFromSupabase() {
         try {
@@ -1252,37 +1343,16 @@
         }
     }
 
-    // جلب جميع العقود من Supabase
-    async function loadContractsFromSupabase() {
-        try {
-            const { data, error } = await supabase
-                .from('contracts')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            return data || [];
-        } catch (error) {
-            console.error('خطأ في جلب العقود:', error);
-            return [];
-        }
-    }
-
-    // دالة محسنة لتحميل الطلبات (تدمج البيانات المحلية والسحابية)
+    // دالة محسنة لتحميل الطلبات
     async function enhancedLoadApplications() {
         try {
             showSyncStatus('جاري تحميل البيانات من السحابة...', 'loading', 'adminSyncStatus');
             
-            // جلب البيانات من السحابة
             const cloudApplications = await loadApplicationsFromSupabase();
-            
-            // جلب البيانات المحلية
             const localApplications = loadResponses();
             
-            // دمج البيانات (إعطاء الأولوية للسحابة)
+            // دمج البيانات مع إعطاء الأولوية للسحابة
             const allApplications = [...cloudApplications, ...localApplications];
-            
-            // إزالة التكرارات بناءً على local_id
             const uniqueApplications = allApplications.filter((app, index, self) =>
                 index === self.findIndex(a => 
                     (a.local_id && a.local_id === app.local_id) || 
@@ -1295,18 +1365,18 @@
         } catch (error) {
             console.error('خطأ في تحميل البيانات:', error);
             showSyncStatus('❌ فشل في تحميل البيانات من السحابة', 'error', 'adminSyncStatus');
-            return loadResponses(); // العودة للبيانات المحلية في حالة الخطأ
+            return loadResponses();
         }
     }
 
-    // دالة محسنة لحفظ الطلبات (تحفظ في كلا المكانين)
+    // دالة محسنة لحفظ الطلبات
     async function enhancedSaveApplication(application) {
-        // الحفظ المحلي (كما كان)
+        // الحفظ المحلي أولاً
         const arr = loadResponses();
         arr.push(application);
         saveResponses(arr);
         
-        // الحفظ في السحابة
+        // ثم الحفظ في السحابة
         try {
             await saveApplicationToSupabase(application);
         } catch (error) {
@@ -1315,55 +1385,49 @@
     }
 
     // =============================================
-    // الدوال الأصلية (مع تعديلات طفيفة لدعم Supabase)
+    // باقي الدوال الأساسية (بدون تغيير)
     // =============================================
     
-    // إضافة دالة للتحقق من رفع ملف PDF
-    function confirmPDFUpload() {
-        const fileInput = document.getElementById('cv_file');
-        if (fileInput && fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            if (file.type === 'application/pdf') {
-                if (file.size <= 5 * 1024 * 1024) { // 5MB
-                    alert('✓ تم تأكيد رفع ملف PDF بنجاح: ' + file.name);
-                    return true;
-                } else {
-                    alert('❌ حجم الملف كبير جداً. الحد الأقصى 5MB');
-                    return false;
-                }
+    // إضافة مستمع الحدث لمعاينة الملف
+    document.getElementById('cv_file').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.type === 'application/pdf' && file.size <= 5 * 1024 * 1024) {
+                previewFile(file);
             } else {
-                alert('❌ يرجى اختيار ملف PDF فقط');
-                return false;
+                alert('❌ يرجى اختيار ملف PDF صالح بحجم لا يتجاوز 5MB');
+                this.value = '';
             }
-        } else {
-            alert('⚠️ لم يتم اختيار أي ملف لرفعه');
-            return false;
         }
-    }
+    });
     
-    // وظيفة لتحويل الملف إلى Base64
-    function fileToBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-        });
-    }
-    
-    // وظائف إدارة الملفات
-    function loadFiles() {
+    // وظائف إدارة التخزين المحلي
+    function loadResponses() {
         try {
-            const raw = localStorage.getItem(STORAGE_FILES);
-            if (!raw) return {};
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return [];
             return JSON.parse(raw);
         } catch (e) {
-            return {};
+            return [];
         }
     }
     
-    function saveFiles(filesObj) {
-        localStorage.setItem(STORAGE_FILES, JSON.stringify(filesObj));
+    function saveResponses(arr) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    }
+    
+    function loadContracts() {
+        try {
+            const raw = localStorage.getItem(STORAGE_CONTRACTS);
+            if (!raw) return [];
+            return JSON.parse(raw);
+        } catch (e) {
+            return [];
+        }
+    }
+    
+    function saveContracts(arr) {
+        localStorage.setItem(STORAGE_CONTRACTS, JSON.stringify(arr));
     }
     
     // وظائف التنقل بين الصفحات
@@ -1577,35 +1641,6 @@
         }
     });
     
-    // وظائف إدارة التخزين المحلي
-    function loadResponses() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return [];
-            return JSON.parse(raw);
-        } catch (e) {
-            return [];
-        }
-    }
-    
-    function saveResponses(arr) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-    }
-    
-    function loadContracts() {
-        try {
-            const raw = localStorage.getItem(STORAGE_CONTRACTS);
-            if (!raw) return [];
-            return JSON.parse(raw);
-        } catch (e) {
-            return [];
-        }
-    }
-    
-    function saveContracts(arr) {
-        localStorage.setItem(STORAGE_CONTRACTS, JSON.stringify(arr));
-    }
-    
     // معالجة نموذج التقديم
     document.getElementById('applyForm').addEventListener('submit', async function(e){
         e.preventDefault();
@@ -1624,6 +1659,7 @@
             const file = fileInput.files[0];
             if (file.type === 'application/pdf' && file.size <= 5 * 1024 * 1024) {
                 try {
+                    console.log('Processing PDF file:', file.name);
                     const fileData = await fileToBase64(file);
                     const fileInfo = {
                         name: file.name,
@@ -1641,9 +1677,12 @@
                     obj._hasFile = true;
                     obj._fileName = file.name;
                     obj._fileSize = file.size;
+                    
+                    console.log('PDF file saved successfully for application:', obj._id);
                 } catch (error) {
                     console.error('Error processing file:', error);
                     obj._hasFile = false;
+                    alert('❌ حدث خطأ أثناء معالجة الملف. يرجى المحاولة مرة أخرى.');
                 }
             }
         } else {
@@ -1655,6 +1694,7 @@
         
         // إعادة تعيين النموذج وإظهار رسالة التأكيد
         form.reset();
+        document.getElementById('filePreview').style.display = 'none';
         document.getElementById('confirmation').style.display='block';
         document.getElementById('confirmation').scrollIntoView({behavior:'smooth'});
         
@@ -1733,21 +1773,6 @@
         
         html += '</tbody></table>';
         container.innerHTML = html;
-    }
-    
-    // تحميل ملف PDF
-    function downloadFile(applicationId) {
-        const files = loadFiles();
-        const fileInfo = files[applicationId];
-        
-        if (fileInfo && fileInfo.data) {
-            const link = document.createElement('a');
-            link.href = fileInfo.data;
-            link.download = fileInfo.name || 'السيرة_الذاتية.pdf';
-            link.click();
-        } else {
-            alert('❌ الملف غير موجود أو تم حذفه');
-        }
     }
     
     // تحديد/إلغاء تحديد جميع الطلبات
@@ -2021,14 +2046,10 @@
     
     async function updateStats() {
         const applications = await enhancedLoadApplications();
-        const contracts = await loadContractsFromSupabase();
-        const localContracts = loadContracts();
-        
-        // دمج العقود من السحابة والمحلية
-        const allContracts = [...contracts, ...localContracts];
+        const contracts = loadContracts();
         
         document.getElementById('totalApplications').textContent = applications.length;
-        document.getElementById('totalContracts').textContent = allContracts.length;
+        document.getElementById('totalContracts').textContent = contracts.length;
         
         // حساب الطلبات الجديدة (آخر 7 أيام)
         const weekAgo = new Date();
@@ -2177,13 +2198,7 @@
                 .delete()
                 .neq('id', 0); // حذف جميع السجلات
             
-            const { error: contractError } = await supabase
-                .from('contracts')
-                .delete()
-                .neq('id', 0); // حذف جميع السجلات
-            
             if (appError) console.warn('لم يتم حذف الطلبات من السحابة:', appError);
-            if (contractError) console.warn('لم يتم حذف العقود من السحابة:', contractError);
         } catch (error) {
             console.warn('تعذر الحذف من السحابة:', error);
         }
@@ -2251,45 +2266,30 @@
             savedAt: new Date().toISOString()
         };
         
-        // الحفظ المحلي
+        // الحفظ المحلي فقط
         const arr = loadContracts();
         arr.push(obj);
         saveContracts(arr);
         
-        // الحفظ في السحابة
-        try {
-            await saveContractToSupabase(obj);
-        } catch (error) {
-            console.warn('تعذر الحفظ في السحابة:', error);
-        }
-        
-        alert('تم حفظ العقد محليًا وفي السحابة');
+        alert('تم حفظ العقد محليًا');
         renderSavedContracts();
     });
     
     async function renderSavedContracts() {
-        const cloudContracts = await loadContractsFromSupabase();
         const localContracts = loadContracts();
-        
-        // دمج العقود
-        const allContracts = [...cloudContracts, ...localContracts];
         
         const wrap = document.getElementById('savedList');
         const card = document.getElementById('savedListCard');
         
-        if (allContracts.length === 0) { 
+        if (localContracts.length === 0) { 
             card.style.display = 'none'; 
             return; 
         }
         
         card.style.display = 'block';
-        wrap.innerHTML = allContracts.map((c, i) => {
-            const contractNumber = c.contractNumber || c.contract_number;
-            const name = c.name || c.employee_name;
-            const savedAt = c.savedAt || c.saved_at;
-            
+        wrap.innerHTML = localContracts.map((c, i) => {
             return `<div class="contract-item">
-                <strong>${contractNumber}</strong> - ${name} - ${new Date(savedAt).toLocaleString('ar-EG')}
+                <strong>${c.contractNumber}</strong> - ${c.name} - ${new Date(c.savedAt).toLocaleString('ar-EG')}
                 <div style="margin-top: 10px;">
                     <button class="button" onclick="loadSavedContract(${i})">تحميل</button>
                     <button class="button danger" onclick="deleteSavedContract(${i})">حذف</button>
@@ -2299,34 +2299,20 @@
     }
     
     async function loadSavedContract(i) {
-        const cloudContracts = await loadContractsFromSupabase();
         const localContracts = loadContracts();
-        const allContracts = [...cloudContracts, ...localContracts];
-        
-        const c = allContracts[i];
+        const c = localContracts[i];
         if (!c) return;
         
-        const contractNumber = c.contractNumber || c.contract_number;
-        const contractDate = c.contractDate || c.contract_date;
-        const name = c.name || c.employee_name;
-        const id = c.id || c.employee_id;
-        const address = c.address || c.employee_address;
-        const skill = c.skill || c.employee_skill;
-        const rate = c.rate || c.rate_percentage;
-        const start = c.start || c.start_date;
-        const empSig = c.empSig || c.employee_signature;
-        const compSig = c.compSig || c.company_signature;
-        
-        document.getElementById('contractNumber').textContent = 'رقم العقد: ' + contractNumber;
-        document.getElementById('contractDate').textContent = 'تاريخ العقد: ' + contractDate;
-        document.getElementById('c_name').value = name;
-        document.getElementById('c_id').value = id;
-        document.getElementById('c_address').value = address;
-        document.getElementById('c_skill').value = skill;
-        document.getElementById('c_rate').value = rate;
-        document.getElementById('c_start').value = start;
-        document.getElementById('sig_emp').value = empSig;
-        document.getElementById('sig_comp').value = compSig;
+        document.getElementById('contractNumber').textContent = 'رقم العقد: ' + c.contractNumber;
+        document.getElementById('contractDate').textContent = 'تاريخ العقد: ' + c.contractDate;
+        document.getElementById('c_name').value = c.name;
+        document.getElementById('c_id').value = c.id;
+        document.getElementById('c_address').value = c.address;
+        document.getElementById('c_skill').value = c.skill;
+        document.getElementById('c_rate').value = c.rate;
+        document.getElementById('c_start').value = c.start;
+        document.getElementById('sig_emp').value = c.empSig;
+        document.getElementById('sig_comp').value = c.compSig;
         
         window.scrollTo({top: 0, behavior: 'smooth'});
         alert('تم تحميل العقد المحفوظ');
@@ -2335,36 +2321,9 @@
     async function deleteSavedContract(i) {
         if (!confirm('حذف العقد المحفوظ؟')) return;
         
-        const cloudContracts = await loadContractsFromSupabase();
         const localContracts = loadContracts();
-        const allContracts = [...cloudContracts, ...localContracts];
-        
-        const contractToDelete = allContracts[i];
-        if (!contractToDelete) return;
-        
-        // حذف من السحابة إذا كان عقد سحابي
-        if (contractToDelete.id) { // إذا كان له id فهو من السحابة
-            try {
-                const { error } = await supabase
-                    .from('contracts')
-                    .delete()
-                    .eq('id', contractToDelete.id);
-                
-                if (error) throw error;
-            } catch (error) {
-                console.warn('تعذر الحذف من السحابة:', error);
-            }
-        }
-        
-        // حذف محلي
-        const updatedLocalContracts = localContracts.filter((c, index) => {
-            // حذف العقد المحلي الذي يتوافق مع الفهرس
-            if (index === i && !contractToDelete.id) {
-                return false; // حذفه
-            }
-            return true;
-        });
-        saveContracts(updatedLocalContracts);
+        localContracts.splice(i, 1);
+        saveContracts(localContracts);
         
         renderSavedContracts();
         alert('تم حذف العقد');
