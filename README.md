@@ -3,8 +3,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>نظام التوظيف - سماء التقنية</title>
-    <!-- إضافة مكتبة Supabase -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         /* جميع الأنماط السابقة تبقى كما هي */
         :root {
@@ -587,6 +585,27 @@
             display: flex;
             gap: 10px;
         }
+
+        /* أنماط جديدة لرسائل التحميل */
+        .download-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            display: none;
+        }
+        
+        .download-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .download-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
     </style>
 </head>
 <body>
@@ -671,8 +690,6 @@
     <div id="apply" class="page">
         <section class="card">
             <h2>نموذج بيانات المتقدم - سماء التقنية</h2>
-            
-            <div class="sync-status" id="syncStatus"></div>
             
             <form id="applyForm">
                 <h3>معلومات أساسية</h3>
@@ -1041,8 +1058,6 @@
             <div id="adminContent" class="admin-only">
                 <h2>لوحة إدارة طلبات التوظيف</h2>
                 
-                <div class="sync-status" id="adminSyncStatus"></div>
-                
                 <div class="stats">
                     <div class="stat-card">
                         <div>إجمالي الطلبات</div>
@@ -1106,7 +1121,7 @@
 
 <script>
     // =============================================
-    // الإعدادات الأساسية
+    // الإعدادات الأساسية - بدون Supabase
     // =============================================
     
     // الثوابت والمتغيرات العامة
@@ -1118,85 +1133,91 @@
     const LOGIN_STATUS_KEY = 'skytech_admin_logged_in';
     
     // =============================================
-    // إعدادات Supabase - تم التبسيط
-    // =============================================
-    const SUPABASE_URL = 'https://wmtfeavgzrotcjjfmsxk.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtdGZlYXZnenJvdGNqamZtc3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTA1OTYsImV4cCI6MjA3NTQ4NjU5Nn0.T7EguSI_idH8BbnEdDbgSHKcySpomHsWq98_GODs5V0';
-    
-    // تهيئة Supabase
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    // =============================================
-    // دوال إدارة الملفات المحسنة
+    // دوال إدارة الملفات المحسنة بشكل كامل
     // =============================================
     
     // دالة محسنة لتحويل الملف إلى Base64
     function fileToBase64(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.readAsDataURL(file);
             reader.onload = () => {
-                // التأكد من أن النتيجة هي base64 صالحة
                 const base64 = reader.result;
-                if (base64 && base64.startsWith('data:')) {
+                if (base64 && typeof base64 === 'string' && base64.startsWith('data:')) {
                     resolve(base64);
                 } else {
-                    reject(new Error('Failed to convert file to base64'));
+                    reject(new Error('فشل في تحويل الملف إلى base64'));
                 }
             };
             reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
         });
     }
     
-    // دالة محسنة لتحميل الملفات
+    // دالة محسنة لتحميل الملفات من التخزين المحلي
     function loadFiles() {
         try {
             const raw = localStorage.getItem(STORAGE_FILES);
             if (!raw) return {};
             const files = JSON.parse(raw);
             
-            // تنظيف الملفات التالفة
+            // تنظيف الملفات التالفة أو غير الصالحة
             Object.keys(files).forEach(key => {
-                if (!files[key] || !files[key].data || !files[key].data.startsWith('data:')) {
+                const file = files[key];
+                if (!file || !file.data || typeof file.data !== 'string' || !file.data.startsWith('data:application/pdf')) {
+                    console.warn('ملف تالف تم حذفه:', key);
                     delete files[key];
                 }
             });
             
             return files;
         } catch (e) {
-            console.error('Error loading files:', e);
+            console.error('خطأ في تحميل الملفات:', e);
             return {};
         }
     }
     
+    // دالة محسنة لحفظ الملفات في التخزين المحلي
     function saveFiles(filesObj) {
         try {
-            localStorage.setItem(STORAGE_FILES, JSON.stringify(filesObj));
+            // تنظيف البيانات قبل الحفظ
+            const cleanedFiles = {};
+            Object.keys(filesObj).forEach(key => {
+                const file = filesObj[key];
+                if (file && file.data && typeof file.data === 'string' && file.data.startsWith('data:application/pdf')) {
+                    cleanedFiles[key] = file;
+                }
+            });
+            
+            localStorage.setItem(STORAGE_FILES, JSON.stringify(cleanedFiles));
+            console.log('تم حفظ الملفات بنجاح. عدد الملفات:', Object.keys(cleanedFiles).length);
         } catch (e) {
-            console.error('Error saving files:', e);
+            console.error('خطأ في حفظ الملفات:', e);
+            alert('❌ حدث خطأ في حفظ الملفات. قد يكون التخزين ممتلئاً.');
         }
     }
     
-    // دالة محسنة لتحميل ملف PDF
+    // دالة محسنة لتحميل ملف PDF - الإصدار النهائي
     function downloadFile(applicationId) {
+        console.log('بدء تحميل الملف للتطبيق:', applicationId);
+        
         try {
-            console.log('Downloading file for application:', applicationId);
-            
             const files = loadFiles();
+            console.log('الملفات الموجودة:', Object.keys(files));
+            
             const fileInfo = files[applicationId];
             
             if (!fileInfo) {
-                console.error('File not found in storage for application:', applicationId);
-                alert('❌ الملف غير موجود أو تم حذفه. يرجى التحقق من وجود الملف في التخزين المحلي.');
+                console.error('الملف غير موجود للتطبيق:', applicationId);
+                showDownloadStatus('❌ الملف غير موجود أو تم حذفه', 'error');
                 return;
             }
-            
-            if (!fileInfo.data || !fileInfo.data.startsWith('data:')) {
-                console.error('Invalid file data for application:', applicationId);
-                alert('❌ بيانات الملف تالفة أو غير صالحة.');
+
+            if (!fileInfo.data || !fileInfo.data.startsWith('data:application/pdf')) {
+                console.error('بيانات الملف غير صالحة:', fileInfo);
+                showDownloadStatus('❌ بيانات الملف تالفة أو غير صالحة', 'error');
                 return;
             }
-            
+
             // إنشاء رابط تحميل
             const link = document.createElement('a');
             link.href = fileInfo.data;
@@ -1207,12 +1228,34 @@
             link.click();
             document.body.removeChild(link);
             
-            console.log('File download initiated successfully');
+            console.log('تم بدء تحميل الملف بنجاح:', fileInfo.name);
+            showDownloadStatus('✅ تم بدء تحميل الملف بنجاح', 'success');
             
         } catch (error) {
-            console.error('Error downloading file:', error);
-            alert('❌ حدث خطأ غير متوقع أثناء تحميل الملف. يرجى المحاولة مرة أخرى.');
+            console.error('خطأ غير متوقع في تحميل الملف:', error);
+            showDownloadStatus('❌ حدث خطأ غير متوقع أثناء تحميل الملف', 'error');
         }
+    }
+    
+    // دالة لعرض حالة التحميل
+    function showDownloadStatus(message, type) {
+        // إنشاء عنصر لعرض الحالة إذا لم يكن موجوداً
+        let statusElement = document.getElementById('downloadStatus');
+        if (!statusElement) {
+            statusElement = document.createElement('div');
+            statusElement.id = 'downloadStatus';
+            statusElement.className = 'download-status';
+            document.body.appendChild(statusElement);
+        }
+        
+        statusElement.textContent = message;
+        statusElement.className = 'download-status';
+        statusElement.classList.add(`download-${type}`);
+        statusElement.style.display = 'block';
+        
+        setTimeout(() => {
+            statusElement.style.display = 'none';
+        }, 5000);
     }
     
     // دالة جديدة لعرض معاينة الملف
@@ -1236,184 +1279,27 @@
     }
     
     // =============================================
-    // دوال Supabase المبسطة
+    // دوال إدارة التخزين المحلي
     // =============================================
     
-    // إظهار رسالة حالة المزامنة
-    function showSyncStatus(message, type, elementId = 'syncStatus') {
-        const statusEl = document.getElementById(elementId);
-        statusEl.textContent = message;
-        statusEl.className = 'sync-status';
-        statusEl.classList.add(`sync-${type}`);
-        statusEl.style.display = 'block';
-        
-        if (type !== 'loading') {
-            setTimeout(() => {
-                statusEl.style.display = 'none';
-            }, 5000);
-        }
-    }
-    
-    // مزامنة البيانات مع Supabase
-    async function syncWithSupabase() {
-        try {
-            showSyncStatus('جاري مزامنة البيانات مع السحابة...', 'loading');
-            
-            const localApplications = loadResponses();
-            if (localApplications.length > 0) {
-                for (const app of localApplications) {
-                    await saveApplicationToSupabase(app);
-                }
-            }
-
-            showSyncStatus('✅ تمت مزامنة البيانات مع السحابة بنجاح', 'success');
-        } catch (error) {
-            console.error('خطأ في المزامنة:', error);
-            showSyncStatus('❌ فشل في مزامنة البيانات مع السحابة', 'error');
-        }
-    }
-
-    // حفظ طلب في Supabase
-    async function saveApplicationToSupabase(application) {
-        try {
-            const { data, error } = await supabase
-                .from('applications')
-                .upsert({
-                    local_id: application._id,
-                    full_name: application.fullName,
-                    gender: application.gender,
-                    dob: application.dob,
-                    id_number: application.idNumber,
-                    phone: application.phone,
-                    email: application.email,
-                    address: application.address,
-                    has_transport: application.hasTransport,
-                    is_available: application.isAvailable,
-                    availability_reason: application.availabilityReason,
-                    education: application.education,
-                    specialty: application.specialty,
-                    experience: application.experience,
-                    skill_electronics: application.skill_electronics,
-                    circuit_design_software: application.circuit_design_software,
-                    circuit_software_details: application.circuit_software_details,
-                    skill_arduino: application.skill_arduino,
-                    skill_esp: application.skill_ESP,
-                    skill_rpi: application.skill_rpi,
-                    other_controllers: application.other_controllers,
-                    other_controllers_type: application.other_controllers_type,
-                    other_controllers_level: application.other_controllers_level,
-                    skill_3d_design: application.skill_3d_design,
-                    skill_3d_printing: application.skill_3d_printing,
-                    design_software: application.design_software,
-                    printers_used: application.printers_used,
-                    workshop_tools: application.workshop_tools,
-                    workshop_tools_details: application.workshop_tools_details,
-                    high_voltage: application.high_voltage,
-                    workshop_equipment: application.workshop_equipment,
-                    has_file: application._hasFile,
-                    file_name: application._fileName,
-                    file_size: application._fileSize,
-                    submitted_at: application._submittedAt,
-                    created_at: new Date().toISOString()
-                }, {
-                    onConflict: 'local_id'
-                });
-
-            if (error) throw error;
-            return data;
-        } catch (error) {
-            console.error('خطأ في حفظ الطلب:', error);
-            throw error;
-        }
-    }
-
-    // جلب جميع الطلبات من Supabase
-    async function loadApplicationsFromSupabase() {
-        try {
-            const { data, error } = await supabase
-                .from('applications')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            return data || [];
-        } catch (error) {
-            console.error('خطأ في جلب الطلبات:', error);
-            return [];
-        }
-    }
-
-    // دالة محسنة لتحميل الطلبات
-    async function enhancedLoadApplications() {
-        try {
-            showSyncStatus('جاري تحميل البيانات من السحابة...', 'loading', 'adminSyncStatus');
-            
-            const cloudApplications = await loadApplicationsFromSupabase();
-            const localApplications = loadResponses();
-            
-            // دمج البيانات مع إعطاء الأولوية للسحابة
-            const allApplications = [...cloudApplications, ...localApplications];
-            const uniqueApplications = allApplications.filter((app, index, self) =>
-                index === self.findIndex(a => 
-                    (a.local_id && a.local_id === app.local_id) || 
-                    (a._id && a._id === app._id)
-                )
-            );
-            
-            showSyncStatus('✅ تم تحميل البيانات بنجاح', 'success', 'adminSyncStatus');
-            return uniqueApplications;
-        } catch (error) {
-            console.error('خطأ في تحميل البيانات:', error);
-            showSyncStatus('❌ فشل في تحميل البيانات من السحابة', 'error', 'adminSyncStatus');
-            return loadResponses();
-        }
-    }
-
-    // دالة محسنة لحفظ الطلبات
-    async function enhancedSaveApplication(application) {
-        // الحفظ المحلي أولاً
-        const arr = loadResponses();
-        arr.push(application);
-        saveResponses(arr);
-        
-        // ثم الحفظ في السحابة
-        try {
-            await saveApplicationToSupabase(application);
-        } catch (error) {
-            console.warn('تعذر الحفظ في السحابة، سيتم الاعتماد على التخزين المحلي');
-        }
-    }
-
-    // =============================================
-    // باقي الدوال الأساسية (بدون تغيير)
-    // =============================================
-    
-    // إضافة مستمع الحدث لمعاينة الملف
-    document.getElementById('cv_file').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            if (file.type === 'application/pdf' && file.size <= 5 * 1024 * 1024) {
-                previewFile(file);
-            } else {
-                alert('❌ يرجى اختيار ملف PDF صالح بحجم لا يتجاوز 5MB');
-                this.value = '';
-            }
-        }
-    });
-    
-    // وظائف إدارة التخزين المحلي
     function loadResponses() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
             if (!raw) return [];
             return JSON.parse(raw);
         } catch (e) {
+            console.error('خطأ في تحميل البيانات:', e);
             return [];
         }
     }
     
     function saveResponses(arr) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+        } catch (e) {
+            console.error('خطأ في حفظ البيانات:', e);
+            alert('❌ حدث خطأ في حفظ البيانات. قد يكون التخزين ممتلئاً.');
+        }
     }
     
     function loadContracts() {
@@ -1422,15 +1308,24 @@
             if (!raw) return [];
             return JSON.parse(raw);
         } catch (e) {
+            console.error('خطأ في تحميل العقود:', e);
             return [];
         }
     }
     
     function saveContracts(arr) {
-        localStorage.setItem(STORAGE_CONTRACTS, JSON.stringify(arr));
+        try {
+            localStorage.setItem(STORAGE_CONTRACTS, JSON.stringify(arr));
+        } catch (e) {
+            console.error('خطأ في حفظ العقود:', e);
+            alert('❌ حدث خطأ في حفظ العقود. قد يكون التخزين ممتلئاً.');
+        }
     }
     
-    // وظائف التنقل بين الصفحات
+    // =============================================
+    // دوال التنقل والواجهة
+    // =============================================
+    
     function showPage(pageId) {
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
@@ -1574,6 +1469,10 @@
         return parseInt(count);
     }
     
+    // =============================================
+    // معالجة الأحداث والنماذج
+    // =============================================
+    
     // التحقق من الموافقة على الشروط قبل الانتقال لصفحة التقديم
     document.getElementById('applyButton').addEventListener('click', function() {
         const agreeCheckbox = document.getElementById('agreeTermsHome');
@@ -1641,6 +1540,19 @@
         }
     });
     
+    // معاينة الملف عند اختياره
+    document.getElementById('cv_file').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.type === 'application/pdf' && file.size <= 5 * 1024 * 1024) {
+                previewFile(file);
+            } else {
+                alert('❌ يرجى اختيار ملف PDF صالح بحجم لا يتجاوز 5MB');
+                this.value = '';
+            }
+        }
+    });
+    
     // معالجة نموذج التقديم
     document.getElementById('applyForm').addEventListener('submit', async function(e){
         e.preventDefault();
@@ -1659,7 +1571,7 @@
             const file = fileInput.files[0];
             if (file.type === 'application/pdf' && file.size <= 5 * 1024 * 1024) {
                 try {
-                    console.log('Processing PDF file:', file.name);
+                    console.log('معالجة ملف PDF:', file.name);
                     const fileData = await fileToBase64(file);
                     const fileInfo = {
                         name: file.name,
@@ -1678,9 +1590,9 @@
                     obj._fileName = file.name;
                     obj._fileSize = file.size;
                     
-                    console.log('PDF file saved successfully for application:', obj._id);
+                    console.log('تم حفظ ملف PDF بنجاح للتطبيق:', obj._id);
                 } catch (error) {
-                    console.error('Error processing file:', error);
+                    console.error('خطأ في معالجة الملف:', error);
                     obj._hasFile = false;
                     alert('❌ حدث خطأ أثناء معالجة الملف. يرجى المحاولة مرة أخرى.');
                 }
@@ -1689,8 +1601,10 @@
             obj._hasFile = false;
         }
         
-        // الحفظ المحلي وفي السحابة
-        await enhancedSaveApplication(obj);
+        // الحفظ المحلي
+        const arr = loadResponses();
+        arr.push(obj);
+        saveResponses(arr);
         
         // إعادة تعيين النموذج وإظهار رسالة التأكيد
         form.reset();
@@ -1710,9 +1624,12 @@
         }
     });
     
-    // وظائف لوحة الإدارة
-    async function loadApplications() {
-        const applications = await enhancedLoadApplications();
+    // =============================================
+    // دوال لوحة الإدارة
+    // =============================================
+    
+    function loadApplications() {
+        const applications = loadResponses();
         const container = document.getElementById('applicationsList');
         
         if (applications.length === 0) {
@@ -1738,33 +1655,30 @@
         `;
         
         applications.forEach((app, index) => {
-            const submittedAt = app._submittedAt || app.submitted_at;
-            const date = new Date(submittedAt).toLocaleDateString('ar-EG');
-            const hasFile = app._hasFile || app.has_file;
-            const fileName = app._fileName || app.file_name;
-            const fileSize = app._fileSize || app.file_size;
+            const date = new Date(app._submittedAt).toLocaleDateString('ar-EG');
+            const hasFile = app._hasFile;
+            const fileName = app._fileName;
+            const fileSize = app._fileSize;
             
             const fileInfo = hasFile ? 
                 `<span class="file-name">${fileName}</span><br><span class="file-size">(${(fileSize / 1024).toFixed(2)} KB)</span>` : 
                 '<span class="no-file">لا يوجد ملف</span>';
             
-            const appId = app._id || app.local_id;
-            
             html += `
                 <tr>
                     <td class="serial-number">${index + 1}</td>
-                    <td><input type="checkbox" class="application-checkbox" value="${appId}"></td>
-                    <td>${app.fullName || app.full_name || 'غير مذكور'}</td>
+                    <td><input type="checkbox" class="application-checkbox" value="${app._id}"></td>
+                    <td>${app.fullName || 'غير مذكور'}</td>
                     <td>${app.phone || 'غير مذكور'}</td>
                     <td>${app.email || 'غير مذكور'}</td>
                     <td>${fileInfo}</td>
                     <td>${date}</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="button" onclick="viewApplicationDetail('${appId}')">عرض</button>
-                            <button class="button outline" onclick="generateContract('${appId}')">عقد</button>
-                            <button class="button danger" onclick="deleteApplication('${appId}')">حذف</button>
-                            ${hasFile ? `<button class="button success" onclick="downloadFile('${appId}')">📥 تحميل PDF</button>` : ''}
+                            <button class="button" onclick="viewApplicationDetail('${app._id}')">عرض</button>
+                            <button class="button outline" onclick="generateContract('${app._id}')">عقد</button>
+                            <button class="button danger" onclick="deleteApplication('${app._id}')">حذف</button>
+                            ${hasFile ? `<button class="button success" onclick="downloadFile('${app._id}')">📥 تحميل PDF</button>` : ''}
                         </div>
                     </td>
                 </tr>
@@ -1786,9 +1700,9 @@
     }
     
     // عرض تفاصيل الطلب في صفحة جديدة
-    async function viewApplicationDetail(id) {
-        const applications = await enhancedLoadApplications();
-        const app = applications.find(a => (a._id === id) || (a.local_id === id));
+    function viewApplicationDetail(id) {
+        const applications = loadResponses();
+        const app = applications.find(a => a._id === id);
         
         if (!app) {
             alert('لم يتم العثور على الطلب');
@@ -1800,7 +1714,7 @@
                 <h4>المعلومات الأساسية</h4>
                 <div class="detail-row">
                     <div class="detail-label">الاسم الكامل:</div>
-                    <div class="detail-value">${app.fullName || app.full_name || 'غير مذكور'}</div>
+                    <div class="detail-value">${app.fullName || 'غير مذكور'}</div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">الجنس:</div>
@@ -1812,7 +1726,7 @@
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">رقم البطاقة/الهوية:</div>
-                    <div class="detail-value">${app.idNumber || app.id_number || 'غير مذكور'}</div>
+                    <div class="detail-value">${app.idNumber || 'غير مذكور'}</div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">رقم الهاتف:</div>
@@ -1828,16 +1742,16 @@
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">وسيلة نقل:</div>
-                    <div class="detail-value">${app.hasTransport || app.has_transport || 'غير مذكور'}</div>
+                    <div class="detail-value">${app.hasTransport || 'غير مذكور'}</div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">التفرغ:</div>
-                    <div class="detail-value">${app.isAvailable || app.is_available || 'غير مذكور'}</div>
+                    <div class="detail-value">${app.isAvailable || 'غير مذكور'}</div>
                 </div>
-                ${(app.availabilityReason || app.availability_reason) ? `
+                ${app.availabilityReason ? `
                 <div class="detail-row">
                     <div class="detail-label">سبب عدم التفرغ:</div>
-                    <div class="detail-value">${app.availabilityReason || app.availability_reason}</div>
+                    <div class="detail-value">${app.availabilityReason}</div>
                 </div>
                 ` : ''}
             </div>
@@ -1868,7 +1782,7 @@
                     <div class="detail-label">برامج رسم الدوائر:</div>
                     <div class="detail-value">${app.circuit_design_software || 'غير مذكور'}</div>
                 </div>
-                ${(app.circuit_software_details) ? `
+                ${app.circuit_software_details ? `
                 <div class="detail-row">
                     <div class="detail-label">تفاصيل برامج رسم الدوائر:</div>
                     <div class="detail-value">${app.circuit_software_details}</div>
@@ -1880,7 +1794,7 @@
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">برمجة ESP:</div>
-                    <div class="detail-value">${app.skill_ESP || app.skill_esp || 'غير مذكور'}</div>
+                    <div class="detail-value">${app.skill_ESP || 'غير مذكور'}</div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">برمجة Raspberry Pi:</div>
@@ -1890,13 +1804,13 @@
                     <div class="detail-label">متحكمات أخرى:</div>
                     <div class="detail-value">${app.other_controllers || 'غير مذكور'}</div>
                 </div>
-                ${(app.other_controllers_type) ? `
+                ${app.other_controllers_type ? `
                 <div class="detail-row">
                     <div class="detail-label">نوع المتحكمات الأخرى:</div>
                     <div class="detail-value">${app.other_controllers_type}</div>
                 </div>
                 ` : ''}
-                ${(app.other_controllers_level) ? `
+                ${app.other_controllers_level ? `
                 <div class="detail-row">
                     <div class="detail-label">مستوى المتحكمات الأخرى:</div>
                     <div class="detail-value">${app.other_controllers_level}</div>
@@ -1914,13 +1828,13 @@
                     <div class="detail-label">التشغيل على طابعات 3D:</div>
                     <div class="detail-value">${app.skill_3d_printing || 'غير مذكور'}</div>
                 </div>
-                ${(app.design_software) ? `
+                ${app.design_software ? `
                 <div class="detail-row">
                     <div class="detail-label">برامج التصميم:</div>
                     <div class="detail-value">${app.design_software}</div>
                 </div>
                 ` : ''}
-                ${(app.printers_used) ? `
+                ${app.printers_used ? `
                 <div class="detail-row">
                     <div class="detail-label">الطابعات المستخدمة:</div>
                     <div class="detail-value">${app.printers_used}</div>
@@ -1934,7 +1848,7 @@
                     <div class="detail-label">أدوات الورشة:</div>
                     <div class="detail-value">${app.workshop_tools || 'غير مذكور'}</div>
                 </div>
-                ${(app.workshop_tools_details) ? `
+                ${app.workshop_tools_details ? `
                 <div class="detail-row">
                     <div class="detail-label">تفاصيل أدوات الورشة:</div>
                     <div class="detail-value">${app.workshop_tools_details}</div>
@@ -1952,25 +1866,21 @@
         `;
         
         // إضافة قسم ملف السيرة الذاتية إذا كان موجوداً
-        const hasFile = app._hasFile || app.has_file;
-        if (hasFile) {
-            const fileName = app._fileName || app.file_name;
-            const fileSize = app._fileSize || app.file_size;
-            
+        if (app._hasFile) {
             details += `
                 <div class="application-detail">
                     <h4>ملف السيرة الذاتية</h4>
                     <div class="file-info">
                         <div class="detail-row">
                             <div class="detail-label">اسم الملف:</div>
-                            <div class="detail-value file-name">${fileName}</div>
+                            <div class="detail-value file-name">${app._fileName}</div>
                         </div>
                         <div class="detail-row">
                             <div class="detail-label">حجم الملف:</div>
-                            <div class="detail-value file-size">${(fileSize / 1024).toFixed(2)} KB</div>
+                            <div class="detail-value file-size">${(app._fileSize / 1024).toFixed(2)} KB</div>
                         </div>
                         <div class="actions">
-                            <button class="button success" onclick="downloadFile('${app._id || app.local_id}')">📥 تحميل ملف PDF</button>
+                            <button class="button success" onclick="downloadFile('${app._id}')">📥 تحميل ملف PDF</button>
                         </div>
                     </div>
                 </div>
@@ -1978,13 +1888,12 @@
         }
         
         // إضافة معلومات إضافية
-        const submittedAt = app._submittedAt || app.submitted_at;
         details += `
             <div class="application-detail">
                 <h4>معلومات إضافية</h4>
                 <div class="detail-row">
                     <div class="detail-label">تاريخ التقديم:</div>
-                    <div class="detail-value">${new Date(submittedAt).toLocaleString('ar-EG')}</div>
+                    <div class="detail-value">${new Date(app._submittedAt).toLocaleString('ar-EG')}</div>
                 </div>
             </div>
         `;
@@ -1993,9 +1902,9 @@
         showPage('applicationDetail');
     }
     
-    async function generateContract(id) {
-        const applications = await enhancedLoadApplications();
-        const app = applications.find(a => (a._id === id) || (a.local_id === id));
+    function generateContract(id) {
+        const applications = loadResponses();
+        const app = applications.find(a => a._id === id);
         
         if (!app) {
             alert('لم يتم العثور على الطلب');
@@ -2003,8 +1912,8 @@
         }
         
         // تعبئة بيانات العقد
-        document.getElementById('c_name').value = app.fullName || app.full_name || '';
-        document.getElementById('c_id').value = app.idNumber || app.id_number || '';
+        document.getElementById('c_name').value = app.fullName || '';
+        document.getElementById('c_id').value = app.idNumber || '';
         document.getElementById('c_address').value = app.address || '';
         document.getElementById('c_skill').value = (app.specialty || '') + (app.other_programming ? ' - ' + app.other_programming : '');
         document.getElementById('c_start').value = new Date().toISOString().slice(0,10);
@@ -2013,22 +1922,10 @@
         showPage('contract');
     }
     
-    async function deleteApplication(id) {
+    function deleteApplication(id) {
         if (!confirm('هل أنت متأكد من حذف هذا الطلب؟ سيتم حذف جميع البيانات المرتبطة به بما في ذلك ملف PDF.')) return;
         
-        try {
-            // حذف من السحابة
-            const { error } = await supabase
-                .from('applications')
-                .delete()
-                .eq('local_id', id);
-            
-            if (error) console.warn('لم يتم الحذف من السحابة:', error);
-        } catch (error) {
-            console.warn('تعذر الحذف من السحابة:', error);
-        }
-        
-        // حذف محلي (كما كان)
+        // حذف محلي
         const applications = loadResponses();
         const filtered = applications.filter(a => a._id !== id);
         saveResponses(filtered);
@@ -2044,8 +1941,8 @@
         updateStats();
     }
     
-    async function updateStats() {
-        const applications = await enhancedLoadApplications();
+    function updateStats() {
+        const applications = loadResponses();
         const contracts = loadContracts();
         
         document.getElementById('totalApplications').textContent = applications.length;
@@ -2055,8 +1952,7 @@
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
         const newApps = applications.filter(app => {
-            const submittedAt = app._submittedAt || app.submitted_at;
-            return new Date(submittedAt) > weekAgo;
+            return new Date(app._submittedAt) > weekAgo;
         });
         document.getElementById('newApplications').textContent = newApps.length;
         
@@ -2065,23 +1961,23 @@
     }
     
     // تصدير جميع البيانات إلى Excel
-    async function exportAllData() {
-        const applications = await enhancedLoadApplications();
+    function exportAllData() {
+        const applications = loadResponses();
         exportToExcel(applications, 'جميع_الطلبات');
     }
     
     // تصدير البيانات المحددة إلى Excel
-    async function exportSelectedData() {
+    function exportSelectedData() {
         const selectedCheckboxes = document.querySelectorAll('.application-checkbox:checked');
         if (selectedCheckboxes.length === 0) {
             alert('يرجى تحديد طلب واحد على الأقل');
             return;
         }
         
-        const applications = await enhancedLoadApplications();
+        const applications = loadResponses();
         const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.value);
         const selectedApplications = applications.filter(app => 
-            selectedIds.includes(app._id) || selectedIds.includes(app.local_id)
+            selectedIds.includes(app._id)
         );
         
         exportToExcel(selectedApplications, 'الطلبات_المحددة');
@@ -2138,19 +2034,18 @@
         
         // إضافة البيانات
         data.forEach((app, index) => {
-            const submittedAt = app._submittedAt || app.submitted_at;
             const row = [
                 index + 1,
-                app.fullName || app.full_name || '',
+                app.fullName || '',
                 app.gender || '',
                 app.dob || '',
-                app.idNumber || app.id_number || '',
+                app.idNumber || '',
                 app.phone || '',
                 app.email || '',
                 app.address || '',
-                app.hasTransport || app.has_transport || '',
-                app.isAvailable || app.is_available || '',
-                app.availabilityReason || app.availability_reason || '',
+                app.hasTransport || '',
+                app.isAvailable || '',
+                app.availabilityReason || '',
                 app.education || '',
                 app.specialty || '',
                 app.experience || '',
@@ -2158,7 +2053,7 @@
                 app.circuit_design_software || '',
                 app.circuit_software_details || '',
                 app.skill_arduino || '',
-                app.skill_ESP || app.skill_esp || '',
+                app.skill_ESP || '',
                 app.skill_rpi || '',
                 app.other_controllers || '',
                 app.other_controllers_type || '',
@@ -2171,8 +2066,8 @@
                 app.workshop_tools_details || '',
                 app.high_voltage || '',
                 app.workshop_equipment || '',
-                (app._hasFile || app.has_file) ? 'نعم - ' + (app._fileName || app.file_name || '') : 'لا',
-                new Date(submittedAt).toLocaleDateString('ar-EG')
+                app._hasFile ? 'نعم - ' + (app._fileName || '') : 'لا',
+                new Date(app._submittedAt).toLocaleDateString('ar-EG')
             ].map(field => `"${field}"`).join(",");
             
             csvContent += row + "\r\n";
@@ -2188,20 +2083,8 @@
         document.body.removeChild(link);
     }
     
-    async function clearAllData() {
+    function clearAllData() {
         if (!confirm('هل أنت متأكد من حذف جميع البيانات؟ لا يمكن التراجع عن هذا الإجراء.')) return;
-        
-        try {
-            // حذف من السحابة
-            const { error: appError } = await supabase
-                .from('applications')
-                .delete()
-                .neq('id', 0); // حذف جميع السجلات
-            
-            if (appError) console.warn('لم يتم حذف الطلبات من السحابة:', appError);
-        } catch (error) {
-            console.warn('تعذر الحذف من السحابة:', error);
-        }
         
         // حذف محلي
         localStorage.removeItem(STORAGE_KEY);
@@ -2213,7 +2096,10 @@
         alert('تم حذف جميع البيانات');
     }
     
-    // وظائف صفحة العقد
+    // =============================================
+    // دوال صفحة العقد
+    // =============================================
+    
     function genContractNumber() {
         const d = new Date();
         const rnd = Math.floor(100 + Math.random() * 900);
@@ -2229,8 +2115,8 @@
     document.getElementById('contractNumber').textContent = 'رقم العقد: ' + genContractNumber();
     document.getElementById('contractDate').textContent = 'تاريخ العقد: ' + genDateStr();
     
-    document.getElementById('fillFromData').addEventListener('click', async function() {
-        const applications = await enhancedLoadApplications();
+    document.getElementById('fillFromData').addEventListener('click', function() {
+        const applications = loadResponses();
         if (applications.length === 0) {
             alert('لا توجد طلبات مقدمه حتى الآن.');
             return;
@@ -2238,8 +2124,8 @@
         
         // استخدام أحدث طلب
         const latest = applications[0]; // الأول هو الأحدث
-        document.getElementById('c_name').value = latest.fullName || latest.full_name || '';
-        document.getElementById('c_id').value = latest.idNumber || latest.id_number || '';
+        document.getElementById('c_name').value = latest.fullName || '';
+        document.getElementById('c_id').value = latest.idNumber || '';
         document.getElementById('c_address').value = latest.address || '';
         document.getElementById('c_skill').value = (latest.specialty || '') + (latest.other_programming ? ' - ' + latest.other_programming : '');
         document.getElementById('c_start').value = new Date().toISOString().slice(0,10);
@@ -2251,7 +2137,7 @@
         window.print();
     });
     
-    document.getElementById('saveLocal').addEventListener('click', async function() {
+    document.getElementById('saveLocal').addEventListener('click', function() {
         const obj = {
             contractNumber: document.getElementById('contractNumber').textContent.replace('رقم العقد: ', ''),
             contractDate: document.getElementById('contractDate').textContent.replace('تاريخ العقد: ', ''),
@@ -2266,7 +2152,7 @@
             savedAt: new Date().toISOString()
         };
         
-        // الحفظ المحلي فقط
+        // الحفظ المحلي
         const arr = loadContracts();
         arr.push(obj);
         saveContracts(arr);
@@ -2275,7 +2161,7 @@
         renderSavedContracts();
     });
     
-    async function renderSavedContracts() {
+    function renderSavedContracts() {
         const localContracts = loadContracts();
         
         const wrap = document.getElementById('savedList');
@@ -2298,7 +2184,7 @@
         }).join('');
     }
     
-    async function loadSavedContract(i) {
+    function loadSavedContract(i) {
         const localContracts = loadContracts();
         const c = localContracts[i];
         if (!c) return;
@@ -2318,7 +2204,7 @@
         alert('تم تحميل العقد المحفوظ');
     }
     
-    async function deleteSavedContract(i) {
+    function deleteSavedContract(i) {
         if (!confirm('حذف العقد المحفوظ؟')) return;
         
         const localContracts = loadContracts();
@@ -2329,7 +2215,10 @@
         alert('تم حذف العقد');
     }
     
+    // =============================================
     // التهيئة الأولية عند تحميل الصفحة
+    // =============================================
+    
     document.addEventListener('DOMContentLoaded', function() {
         // زيادة عدد الزوار عند تحميل الصفحة
         incrementVisitorCount();
@@ -2347,10 +2236,7 @@
         updateStats();
         renderSavedContracts();
         
-        // مزامنة البيانات مع السحابة (في الخلفية)
-        setTimeout(() => {
-            syncWithSupabase();
-        }, 2000);
+        console.log('تم تحميل النظام بنجاح - الإصدار المحلي فقط');
     });
 </script>
 
